@@ -1,0 +1,7 @@
+/output/
+/output-es/
+/.spago/
+/.psci_modules/
+/node_modules/
+/.psa-stash
+spago.lock

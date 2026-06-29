@@ -1,0 +1,30 @@
+package:
+  name: harmonia
+  description: >
+    Functional-harmony recipes and voice-leading for PureScript. A
+    scale-degree chord vocabulary (Roman numeral + quality + tensions + slash
+    + modal interchange) that `realize`s to pitch-class sets, plus a voicing /
+    voice-leading layer (close-position lift, composable voicing strategies,
+    sub-chord selectors, and minimum-motion voice leading over a progression).
+    Pure Prelude/Data — compiles unchanged under the JS backend and purerl.
+  publish:
+    version: 0.1.0
+    license: MIT
+    location:
+      githubOwner: afcondon
+      githubRepo: purescript-harmonia
+  dependencies:
+    - prelude
+    - arrays
+    - foldable-traversable
+    - maybe
+    - tuples
+  test:
+    main: Test.Main
+    dependencies:
+      - effect
+      - console
+      - assert
+workspace:
+  packageSet:
+    registry: 73.3.0
