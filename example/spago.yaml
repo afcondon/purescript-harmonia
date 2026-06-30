@@ -1,0 +1,14 @@
+package:
+  name: harmonia-example
+  description: Runnable tour of the harmonia library (not published).
+  dependencies:
+    - prelude
+    - harmonia
+    - arrays
+    - foldable-traversable
+    - maybe
+    - strings
+    - effect
+    - console
+  run:
+    main: Example.Main
