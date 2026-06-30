@@ -12,3 +12,9 @@ package:
     - console
   run:
     main: Example.Main
+workspace:
+  extraPackages:
+    harmonia:
+      path: ..
+  packageSet:
+    registry: 73.3.0
