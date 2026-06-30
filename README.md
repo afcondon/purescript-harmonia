@@ -114,9 +114,11 @@ everything composes:
 
 ## A worked example — McMullen's "Yellow"
 
-`mcmullenYellow` is Joe McMullen's 18-chord Plaits table encoded as recipes
-(with `mcmullenYellowNames` for labels), golden-tested against C major. Realized
-and voice-led, it walks like this:
+`mcmullenYellow` is Joe McMullen's 18-chord table (see [References](#references))
+encoded as recipes, with `mcmullenYellowNames` for labels, golden-tested against
+C major. In McMullen's scheme the *key* is fixed and each step picks a *scale
+position*, so the chord root walks as you move through the table — exactly what
+`realize` + `play` reproduce below:
 
 ```
 #   name        pitch classes     voicing
@@ -142,8 +144,8 @@ spago run -p harmonia-example
 
 `harmonia` is **complementary** to
 [`purescript-school-of-music`](https://github.com/newlandsvalley/purescript-school-of-music)
-(John Watson's port of the Haskell School of Music / Euterpea), not a
-competitor. PSoM models *time, performance and notation* — a `Music` algebra
+(John Watson — [@newlandsvalley](https://github.com/newlandsvalley) — and his
+port of the Haskell School of Music / Euterpea), not a competitor. PSoM models *time, performance and notation* — a `Music` algebra
 with sequential (`:+:`) and parallel (`:=:`) composition, spelled pitches,
 tempo, instruments, ABC and MIDI — but it has no functional-harmony or
 voice-leading layer. `harmonia` is exactly that missing layer, one level below:
@@ -151,6 +153,27 @@ it answers *which notes form this chord and how to move between them*, leaving
 *when they play* to a score algebra above. The two meet cleanly at one type — a
 `Voicing` (sorted MIDI) maps directly onto a PSoM parallel stack of notes — so a
 thin adapter could hand `harmonia`'s output to PSoM for notation and playback.
+
+## References
+
+- **Joe McMullen** — designer of the chord tables `mcmullenYellow` encodes.
+  They are credited as "alt chord tables by Joe McMullen" in the alternative
+  Mutable Instruments firmware below, and the same 18-chord table also appears
+  in stock Plaits' Easter-egg chord mode.
+- **Lyle Mills** ([@lylepmills](https://github.com/lylepmills)) — alternative
+  firmware for Mutable Instruments modules (Plaits, Rings, …) that ships
+  McMullen's chord tables:
+  [`lylepmills/eurorack` › `alt_firmwares`](https://github.com/lylepmills/eurorack/tree/master/alt_firmwares).
+- **Mutable Instruments Plaits** — the module whose chord engine this vocabulary
+  echoes:
+  [documentation](https://pichenettes.github.io/mutable-instruments-documentation/modules/plaits/).
+- **John Watson** ([@newlandsvalley](https://github.com/newlandsvalley)) —
+  [`purescript-school-of-music`](https://github.com/newlandsvalley/purescript-school-of-music),
+  the PureScript port of the Haskell School of Music; the score / notation layer
+  that sits *above* `harmonia` (see above).
+- **The Haskell School of Music** — Paul Hudak & Donya Quick, *The Haskell
+  School of Music: From Signals to Symphonies* — the lineage behind PSoM's
+  `Music` / Euterpea algebra.
 
 ## Develop
 
