@@ -23,6 +23,11 @@ package:
       - effect
       - console
       - assert
+      - quickcheck
+      - arrays
+      - foldable-traversable
+      - maybe
+      - tuples
 workspace:
   packageSet:
     registry: 73.3.0

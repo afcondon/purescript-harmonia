@@ -94,6 +94,7 @@ data Quality
   | HalfDim       -- minor 7 b5            [0, 3, 6, 10]
   | FullyDim      -- diminished 7          [0, 3, 6, 9]
   | MinMaj7       -- minor major 7         [0, 3, 7, 11]
+  | AugMaj7       -- augmented major 7     [0, 4, 8, 11]
 
 derive instance eqQuality :: Eq Quality
 derive instance ordQuality :: Ord Quality
@@ -110,6 +111,7 @@ instance showQuality :: Show Quality where
     HalfDim   -> "HalfDim"
     FullyDim  -> "FullyDim"
     MinMaj7   -> "MinMaj7"
+    AugMaj7   -> "AugMaj7"
 
 -- | Interval set of a chord quality, in semitones from the root.
 qualityIntervals :: Quality -> Array Int
@@ -124,6 +126,7 @@ qualityIntervals = case _ of
   HalfDim  -> [0, 3, 6, 10]
   FullyDim -> [0, 3, 6, 9]
   MinMaj7  -> [0, 3, 7, 11]
+  AugMaj7  -> [0, 4, 8, 11]
 
 -- ---------------------------------------------------------------------------
 -- Tension — additions, alterations, suspensions

@@ -7,11 +7,17 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Console (log)
+import Test.AnchorSpec (runAnchorTests)
 import Test.ChordSpec (runChordTests)
+import Test.GradedSpec (runGradedTests)
+import Test.PropSpec (runPropTests)
 import Test.VoicingSpec (runVoicingTests)
 
 main :: Effect Unit
 main = do
   runChordTests
   runVoicingTests
+  runAnchorTests
+  runGradedTests
+  runPropTests
   log "\nAll Harmonia golden tests passed."
