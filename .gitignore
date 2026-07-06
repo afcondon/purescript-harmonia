@@ -5,3 +5,5 @@ output-es/
 node_modules/
 .psa-stash
 spago.lock
+.psc-ide-port
+.purs-repl
