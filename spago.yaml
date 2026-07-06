@@ -6,7 +6,7 @@ package:
     realizes to pitch-class sets, plus composable voicings and minimum-motion
     voice leading. Pure Prelude/Data; builds on JS and purerl.
   publish:
-    version: 0.1.1
+    version: 0.2.0
     license: MIT
     location:
       githubOwner: afcondon
