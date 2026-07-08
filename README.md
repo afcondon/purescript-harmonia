@@ -140,6 +140,46 @@ The full tour is a runnable program:
 spago run -p harmonia-example
 ```
 
+## Quantisation — `Harmonia.PitchSet` & `Harmonia.Quantise`
+
+A `PitchSet` is a quantisation target: literal semitone offsets from a root, with
+an optional tiling `period`. It has two readings — `realize` maps an *index* to a
+pitch (a scale is the degenerate octave-periodic set), and `quantiseNearest` snaps
+a *pitch* to the nearest member, register following the input. After the
+quantisation options Jason Lim built into the Instruo Dáil, three orthogonal axes:
+
+- **pure vs extended** — `chord [0,4,7]` tiles every octave (all D's are the 9th);
+  `extendedChord root offsets octaves` spans multiple octaves, so a 9th an octave
+  up is a member but a home-octave D is not.
+- **nearest vs equal** — `quantiseNearest` snaps a pitch by true pitch distance;
+  `quantiseEqual` divides an input range into equal slots per degree, ignoring the
+  degrees' pitch spacing.
+
+Where does the 9th live? (`extendedChord 60 [0,4,7,14] 2`, a two-octave span):
+
+```
+input   pure add9   extended add9
+D4      D4          E4      ← a home-octave D has no 9th here; snaps to E
+A#4     C5          G4
+B4      C5          D5
+D5      D5          D5      ← the 9th, an octave up, is a member
+```
+
+Nearest vs equal over an uneven scale (C pentatonic, gaps 2-2-3-2-3):
+
+```
+NEAREST  chromatic → nearest tone       EQUAL  knob 0-255 → even slots
+  D#4 → E4    F4 → E4    B4 → C5           0→C4   64→E4   128→C5   192→E5   255→A5
+```
+
+The full tour — all three axes, plus a preview of the Odonus voice pipeline
+(`knob → equal(scale) → nearest(chord)`) — is a runnable program that prints
+worked tables to stdout:
+
+```
+spago run -p harmonia-example --main Example.Quantise
+```
+
 ## Relationship to the School of Music
 
 `harmonia` is **complementary** to
