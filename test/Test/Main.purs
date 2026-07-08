@@ -12,6 +12,7 @@ import Test.ChordSpec (runChordTests)
 import Test.GradedSpec (runGradedTests)
 import Test.PropSpec (runPropTests)
 import Test.QuantiseSpec (runQuantiseTests)
+import Test.VoiceSpec (runVoiceTests)
 import Test.VoicingSpec (runVoicingTests)
 
 main :: Effect Unit
@@ -22,4 +23,5 @@ main = do
   runGradedTests
   runPropTests
   runQuantiseTests
+  runVoiceTests
   log "\nAll Harmonia golden tests passed."

@@ -172,9 +172,39 @@ NEAREST  chromatic → nearest tone       EQUAL  knob 0-255 → even slots
   D#4 → E4    F4 → E4    B4 → C5           0→C4   64→E4   128→C5   192→E5   255→A5
 ```
 
-The full tour — all three axes, plus a preview of the Odonus voice pipeline
-(`knob → equal(scale) → nearest(chord)`) — is a runnable program that prints
-worked tables to stdout:
+## The voice pipeline — `Harmonia.Voice`
+
+`Harmonia.Voice` composes the two quantiser modes into the two-stage pipeline an
+index-driven instrument uses to turn a raw control knob into a sounding pitch
+(the shape reef's Odonus voice ports onto):
+
+```purescript
+home ctx knob        = quantiseEqual ctx.scale ctx.span ctx.knobMax knob      -- q1: a scale tone
+voiceLabel ctx knob  = quantiseNearest ctx.activeSet (home ctx knob)          -- the live knob label
+voiceNote  ctx {knob, offset} =
+  quantiseNearest ctx.activeSet (home ctx knob + offset) + ctx.globalOct      -- q2 + global octave
+```
+
+`home` (equal over a fixed scale) is the **stable melodic shape** — it does not
+move when the harmony moves. `activeSet` (a firing chord, else the scale itself)
+is the **constraint** that colours the melody at the very end. Two properties
+follow from the quantiser laws, not from special cases: in simple mode
+(`activeSet == scale`) the pipeline is transparent (`voiceLabel == home`), and the
+register always follows the melody (`quantiseNearest` is local, so the chord
+recolours in place). A spread of chromatic offsets over one home makes several
+voices sound the whole chord — four voices at home C5, offsets `[-1,2,5,9]`, land
+on `C5 E5 F5 A5`:
+
+```
+voice  offset  sounds  pc          shared home = C5
+v1     -1      C5      C            (nearest-snap over spread
+v2      2      E5      E             offsets, no special-casing —
+v3      5      F5      F             the whole Fmaj7 falls out)
+v4      9      A5      A
+```
+
+The full tour — all three axes plus the voice pipeline — is a runnable program
+that prints worked tables to stdout:
 
 ```
 spago run -p harmonia-example --main Example.Quantise

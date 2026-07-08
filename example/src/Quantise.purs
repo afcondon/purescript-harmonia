@@ -19,6 +19,7 @@ import Effect (Effect)
 import Effect.Console (log)
 import Harmonia.PitchSet (chord, extendedChord, scale)
 import Harmonia.Quantise (quantiseEqual, quantiseNearest)
+import Harmonia.Voice (home, voiceLabel, voiceNote)
 
 -- ---------------------------------------------------------------------------
 -- Pretty-printing
@@ -104,31 +105,33 @@ demoNearestVsEqual = do
 
 demoPipeline :: Effect Unit
 demoPipeline = do
-  rule "4 · ODONUS PIPELINE — knob → equal(scale) → nearest(activeSet)"
-  log "q1 = equal-spacing over the scale (the stable melodic shape, the knob LABEL)."
+  rule "4 · ODONUS PIPELINE — Harmonia.Voice (knob → equal(scale) → nearest(activeSet))"
+  log "q1 = equal-spacing over the scale (the stable melodic shape). The knob LABEL is"
   log "q2 = nearest to the active set: the scale (simple mode) OR the Vetula chord."
   log ""
   let cMajor = scale 60 [ 0, 2, 4, 5, 7, 9, 11 ]   -- the base scale / key
       fMaj7 = chord [ 5, 9, 0, 4 ]                  -- a firing Vetula chord (Fmaj7)
-      home v = quantiseEqual cMajor 2 255 v
-  log (pad 10 "knob" <> pad 14 "home (q1)" <> pad 16 "simple: →scale" <> "Vetula: →Fmaj7")
+      simple = { scale: cMajor, activeSet: cMajor, span: 2, knobMax: 255, globalOct: 0 }
+      follow = simple { activeSet = fMaj7 }
+  log (pad 10 "knob" <> pad 14 "home (q1)" <> pad 16 "simple label" <> "Vetula label →Fmaj7")
   for_ [ 0, 36, 72, 108, 144, 180, 216, 255 ] \v ->
-    let h = home v
-    in log ( pad 10 (show v)
-           <> pad 14 (midiName h)
-           <> pad 16 (midiName (quantiseNearest cMajor h))   -- q2 = scale ⇒ identity (home is a member)
-           <> midiName (quantiseNearest fMaj7 h) )           -- q2 = the chord ⇒ colours it
+    log ( pad 10 (show v)
+        <> pad 14 (midiName (home simple v))
+        <> pad 16 (midiName (voiceLabel simple v))   -- == home (a scale tone is its own label)
+        <> midiName (voiceLabel follow v) )           -- the offset-free chord label
   log ""
-  log "Axis 3 (free): four voices at spread knobs land on all four Fmaj7 tones (one"
-  log "snaps D→E); collectively they sound the chord — no special-casing, just nearest."
+  log "Axis 3 (free): four voices SHARE a home, fan the chromatic OFFSET (±12), and"
+  log "collectively sound the chord — nearest-snap over spread offsets, no special-casing."
   log ""
-  log (pad 10 "voice" <> pad 10 "knob" <> pad 14 "home" <> "→ Fmaj7")
-  for_ (mapWithIndex (\i v -> { i: i + 1, v }) [ 36, 72, 108, 144 ]) \{ i, v } ->
-    let h = quantiseEqual cMajor 2 255 v
+  let hk = 130   -- a knob that homes to C5 (verified below)
+  log ("shared home = " <> midiName (home follow hk) <> "  (knob " <> show hk <> ")")
+  log (pad 10 "voice" <> pad 12 "offset" <> pad 12 "sounds" <> "pc")
+  for_ (mapWithIndex (\i o -> { i: i + 1, o }) [ -1, 2, 5, 9 ]) \{ i, o } ->
+    let n = voiceNote follow { knob: hk, offset: o }
     in log ( pad 10 ("v" <> show i)
-           <> pad 10 (show v)
-           <> pad 14 (midiName h)
-           <> midiName (quantiseNearest fMaj7 h) )
+           <> pad 12 (show o)
+           <> pad 12 (midiName n)
+           <> pcName n )
 
 main :: Effect Unit
 main = do
