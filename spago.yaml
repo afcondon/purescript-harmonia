@@ -14,6 +14,7 @@ package:
   dependencies:
     - arrays: ">=7.3.0 <8.0.0"
     - foldable-traversable: ">=6.0.0 <7.0.0"
+    - integers: ">=6.0.0 <7.0.0"
     - maybe: ">=6.0.0 <7.0.0"
     - prelude: ">=6.0.2 <7.0.0"
     - tuples: ">=7.0.0 <8.0.0"
