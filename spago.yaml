@@ -29,6 +29,13 @@ package:
       - foldable-traversable
       - maybe
       - tuples
+      - order-theory
 workspace:
   packageSet:
     registry: 73.3.0
+  extraPackages:
+    # Test-only path dep (the Galois-adjunction law suite for the quantiser).
+    # Before the next `spago publish` of harmonia, order-theory must itself be
+    # published and this pinned to a registry version range.
+    order-theory:
+      path: ../../purescript-order-theory

@@ -9,6 +9,7 @@ import Effect (Effect)
 import Effect.Console (log)
 import Test.AnchorSpec (runAnchorTests)
 import Test.ChordSpec (runChordTests)
+import Test.GaloisSpec (runGaloisTests)
 import Test.GradedSpec (runGradedTests)
 import Test.PropSpec (runPropTests)
 import Test.QuantiseSpec (runQuantiseTests)
@@ -23,5 +24,6 @@ main = do
   runGradedTests
   runPropTests
   runQuantiseTests
+  runGaloisTests
   runVoiceTests
   log "\nAll Harmonia golden tests passed."

@@ -24,20 +24,25 @@
 -- | chord with offset 26 matches any D, while an EXTENDED chord (period 24) matches
 -- | only the D's that actually sit in the set. The period is the whole story.
 -- |
--- | POLICY FAMILY (seam): `quantiseNearest` is the round-to-nearest policy. Snap
--- | DOWN (floor), snap UP (ceil), and "stay within the input's own octave" are
--- | deliberate future members of the family; they share the tiling arithmetic
--- | (`residueMember`) and differ only in selection. Kept to one until a second is
--- | actually needed.
+-- | POLICY FAMILY: `quantiseNearest` is the round-to-nearest policy; `snapDown`
+-- | (floor) and `snapUp` (ceil) are the two LAWFUL members — the right and left
+-- | Galois adjoints of the set's inclusion into all pitches
+-- | (`m <= n ⟺ m <= snapDown n`, and dually). The adjunction law pins them
+-- | completely — no tie-break rule needed — and nearest always agrees with one
+-- | of them (it is the compromise between the adjoints, hence its documented
+-- | upward tie-break). All three share the tiling arithmetic. "Stay within the
+-- | input's own octave" remains a future member.
 module Harmonia.Quantise
   ( quantiseNearest
   , quantiseEqual
+  , snapDown
+  , snapUp
   ) where
 
 import Prelude
 
-import Data.Array (null)
-import Data.Foldable (minimumBy)
+import Data.Array (filter, null)
+import Data.Foldable (maximum, minimum, minimumBy)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Ord (abs)
 import Harmonia.PitchSet (PitchSet(..), realizeEqual)
@@ -67,6 +72,45 @@ residueMember :: Int -> Int -> Int -> Int
 residueMember p target note =
   let r = (((target - note) `mod` p) + p) `mod` p
   in if 2 * r <= p then note + r else note + r - p
+
+-- | Snap DOWN: the greatest member of the tiling `<= note` — the right Galois
+-- | adjoint of the set's inclusion into all pitches (`m <= n ⟺ m <= snapDown n`
+-- | for every member `m`). Members are fixed points; an empty set is identity.
+-- | A finite set has no member below its floor, so inputs beneath it CLAMP to
+-- | the lowest member — the adjoint is partial there and the law holds only
+-- | in range (periodic tilings are total, no caveat).
+snapDown :: PitchSet -> Int -> Int
+snapDown (PitchSet s) note
+  | null s.offsets = note
+  | otherwise = case s.period of
+      Just p | p > 0 ->
+        fromMaybe note
+          (maximum (map (\off -> note - pmod (note - (s.root + off)) p) s.offsets))
+      _ ->
+        let members = map (s.root + _) s.offsets
+        in case maximum (filter (_ <= note) members) of
+          Just m -> m
+          Nothing -> fromMaybe note (minimum members)
+
+-- | Snap UP: the least member of the tiling `>= note` — the left Galois adjoint
+-- | of the inclusion (`snapUp n <= m ⟺ n <= m`). Dual of `snapDown`, including
+-- | the finite-set clamp (inputs above the top member clamp down to it).
+snapUp :: PitchSet -> Int -> Int
+snapUp (PitchSet s) note
+  | null s.offsets = note
+  | otherwise = case s.period of
+      Just p | p > 0 ->
+        fromMaybe note
+          (minimum (map (\off -> note + pmod ((s.root + off) - note) p) s.offsets))
+      _ ->
+        let members = map (s.root + _) s.offsets
+        in case minimum (filter (_ >= note) members) of
+          Just m -> m
+          Nothing -> fromMaybe note (maximum members)
+
+-- | Positive modulo (result in `[0, m)` for `m > 0`), backend-stable.
+pmod :: Int -> Int -> Int
+pmod a m = ((a `mod` m) + m) `mod` m
 
 -- | EQUAL-SPACING quantisation (the Dáil's other mode): map an input value
 -- | `v ∈ [0, inMax]` across `spanPeriods` periods of the set, giving each degree an
