@@ -32,7 +32,7 @@ package:
       - order-theory
 workspace:
   packageSet:
-    registry: 73.3.0
+    registry: 77.13.1
   extraPackages:
     # Test-only path dep (the Galois-adjunction law suite for the quantiser).
     # Before the next `spago publish` of harmonia, order-theory must itself be
