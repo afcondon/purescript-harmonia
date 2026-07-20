@@ -7,3 +7,4 @@ node_modules/
 spago.lock
 .psc-ide-port
 .purs-repl
+.direnv/
