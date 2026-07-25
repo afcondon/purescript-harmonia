@@ -5,7 +5,7 @@
 Describe a chord by what it *means* — a scale degree, a quality, some tensions,
 maybe a borrowed mode — and `harmonia` resolves it against a key into pitch
 classes, lifts it to concrete MIDI, and threads a whole progression together by
-smallest motion. Two small pure modules, no `Effect`, no FFI, dependencies
+smallest motion. Small pure modules, no `Effect`, no FFI, dependencies
 limited to `prelude` / `arrays` / `foldable-traversable` / `maybe` / `tuples` —
 so the same code compiles unchanged under the JavaScript backend **and**
 [purerl](https://github.com/purerl/purescript) (Erlang).
@@ -208,6 +208,77 @@ that prints worked tables to stdout:
 
 ```
 spago run -p harmonia-example --main Example.Quantise
+```
+
+## Grades & blame — `Harmonia.Anchor` & `Harmonia.Graded`
+
+The other layer answers a different question: *how much harmonic leverage does a
+chord afford, and what happens when you ask it to do something its reading can't
+support?* A chord that has been dragged out of its key, hand-entered, or caught
+with no context is not an **illegal** state to be made unrepresentable — it is an
+**expressive** one. So `harmonia` keeps it representable and makes the operations
+honest about where their reading runs out.
+
+An `Anchor` is a chord's *scale reading*, or its absence:
+
+| Piece | What it is |
+|---|---|
+| `Located key dc` | a chord that knows where it sits — its `DegreeChord` recipe and `Key` |
+| `Free` | pitches only; no scale to interpret against |
+| `Grade` | `ShiftOnly < Keyed < Diatonic` — an ordinal ladder of leverage, *derived* by `classify`, never stored |
+| `Op` | the closed set of verbs: `Shift` `Modulate` `Reflavour` `Substitute` |
+| `permitted` | `Grade -> Array Op` — the nested capabilities each rung unlocks |
+
+The grade is a judgment about the chord, and the operations nest — a `Diatonic`
+chord can do everything a `Keyed` one can, and more:
+
+```
+grade        can do
+ShiftOnly    Shift                                  -- no reading — only absolute motion
+Keyed        Shift Modulate                         -- has a tonic, but foreign to it
+Diatonic     Shift Modulate Reflavour Substitute    -- fully at home in its key
+```
+
+`Harmonia.Graded` turns that into two type classes. `Harmonic` gives every chord
+a `grade` and an always-total `transpose` (the floor — pure semitone arithmetic,
+never blames). `Reflavourable` adds `modulate` and `reflavour`, the operations
+that *consult the reading* — and both are **total functions that return a
+`Graded`**: a value plus any **blame** it accrued. Empty blame is a clean result;
+non-empty blame means the listed positions were passed through untouched, each
+tagged with *why* (`NoReading` for a `Free` chord, `Borrowed` for one foreign to
+its key).
+
+```purescript
+import Harmonia.Chord (Mode(..), Numeral(..), Quality(..), borrow, cMajorKey, deg)
+import Harmonia.Anchor (Anchor(..))
+import Harmonia.Graded (reflavour, value, blame)
+
+reflavour Aeolian (Located cMajorKey (deg II Min7 []))        -- clean: re-read in Aeolian
+reflavour Aeolian (Located cMajorKey (borrow Aeolian (deg VI Maj [])))
+  -- value = the chord, unchanged;  blame = [{ index: 0, reason: Borrowed }]
+```
+
+The design turns out to be a **fractal**: a `Phrase` (a sequence of readings) is
+`Harmonic`/`Reflavourable` too — the same object one level up. Its grade is
+*emergent* (the meet of its members), so a single borrowed chord drops the whole
+phrase to what all of it can uniformly do, and reflavouring the phrase blames
+exactly the positions where the reading stopped — the located spine moves, the
+foreign chords pass through, and the blame list names the boundaries:
+
+```
+ii–V–I with a borrowed bVI, reflavoured to Aeolian:
+  [C D F A]  |  [C D# G#]  |  [C E G B]      grade Keyed
+  [C D F G#] |  [C D# G#]  |  [C D# G A#]    ⚠ blamed @1 Borrowed
+             ↑ the spine reflavours          ↑ the borrow passes through
+```
+
+The blame *is* the leverage — it forces the caller to see the boundaries rather
+than silently getting a mangled chord. Rendering the distinction (colour, greyed
+buttons, a marked passed-through chord) is the caller's job; these modules only
+say *what is true*, never *how to show it*. The full tour is runnable:
+
+```
+spago run -p harmonia-example --main Example.Anchor
 ```
 
 ## Relationship to the School of Music
