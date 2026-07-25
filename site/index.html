@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>harmonia — functional harmony for PureScript</title>
+  <meta name="description" content="A small PureScript library for functional harmony and voice leading. Name a chord by what it means; it finds the notes. Runs on JavaScript and Erlang." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ─────────────────────────── the sheet: above the fold ── -->
+  <header class="fold">
+    <div class="plate">
+      <p class="opus">for PureScript &amp; purerl</p>
+      <h1 class="title">harmonia</h1>
+      <p class="subtitle">Symbolic manipulation of musical structure&thinsp;&mdash;&thinsp;informed by theory, never prescriptive.</p>
+      <p class="movement-label"><span class="mark">one line, three modes</span> &nbsp;·&nbsp; <em>reflavoured</em></p>
+
+      <div class="modes">
+        <div class="mode-row">
+          <div class="mode-label">
+            <span class="mode-name">Ionian</span>
+            <span class="mode-chords">C&nbsp;· F&nbsp;· G&nbsp;· C</span>
+            <span class="mode-mood">lucent</span>
+          </div>
+          <div class="score" id="modeIonian" aria-label="I IV V I in C Ionian — no accidentals"></div>
+        </div>
+        <div class="mode-row">
+          <div class="mode-label">
+            <span class="mode-name">Mixolydian</span>
+            <span class="mode-chords">C&nbsp;· F&nbsp;· Gm&nbsp;· C</span>
+            <span class="mode-mood">amber</span>
+          </div>
+          <div class="score" id="modeMixolydian" aria-label="the same line in C Mixolydian — the seventh flattens"></div>
+        </div>
+        <div class="mode-row">
+          <div class="mode-label">
+            <span class="mode-name">Aeolian</span>
+            <span class="mode-chords">Cm&nbsp;· Fm&nbsp;· Gm&nbsp;· Cm</span>
+            <span class="mode-mood">shadow</span>
+          </div>
+          <div class="score" id="modeAeolian" aria-label="the same line in C Aeolian — flats bloom"></div>
+        </div>
+      </div>
+
+      <p class="gloss">
+        One progression — <b>I&nbsp;· IV&nbsp;· V&nbsp;· I</b> — named once by degree.
+        <em>reflavour</em> bends the mode; the tune keeps its shape, the light changes.
+      </p>
+      <p class="hero-code"><button type="button" class="code-toggle" data-code="reflavour">show the reflavour&nbsp;<span aria-hidden="true">&#10214;/&#10215;</span></button></p>
+    </div>
+    <a class="scroll-cue" href="#read" aria-label="Read on">&#8964;</a>
+  </header>
+
+  <!-- ─────────────────────────── below the fold: the reading ── -->
+  <main id="read">
+    <p class="lede">
+      <b>harmonia</b> is a small, pure PureScript library for functional harmony.
+      You name a chord by a scale degree, a quality, a tension, maybe a borrowed
+      mode — and it realizes that <em>recipe</em> against a key into pitch classes,
+      then threads a whole progression together by smallest motion. No
+      <code>Effect</code>, no FFI; the same code compiles unchanged on JavaScript
+      <em>and</em> on Erlang.
+    </p>
+    <p class="lede">
+      The three staves above are one call apart. Written once as scale degrees,
+      the progression is handed to <code>reflavour</code> — and every chord
+      re-derives its quality from the new mode&rsquo;s own harmony. The four
+      movements below go deeper; each carries the PureScript that makes it.
+    </p>
+
+    <section class="movement">
+      <span class="rehearsal">A</span>
+      <p class="direction"><em>cantabile</em></p>
+      <h2>The voices lead</h2>
+      <figure class="fig fig-stack">
+        <div class="tint-stave">
+          <span class="stave-tag">block &mdash; root position, leaping</span>
+          <div class="score" id="figVLBlock"></div>
+        </div>
+        <div class="tint-stave">
+          <span class="stave-tag">voice-led &mdash; least motion</span>
+          <div class="score" id="figVLLed"></div>
+        </div>
+      </figure>
+      <p class="caption">
+        The same ii&ndash;V&ndash;I, voiced two ways. Block-voiced, the chords
+        <em>leap</em>. <code>voiceLead</code> instead moves to each next chord by the
+        least total motion: every common tone stays on its exact pitch and each
+        remaining voice steps to its nearest octave &mdash; so the whole progression
+        barely moves.
+        <button type="button" class="code-toggle" data-code="voicelead">show the code&nbsp;<span aria-hidden="true">&#10214;/&#10215;</span></button>
+      </p>
+    </section>
+
+    <section class="movement">
+      <span class="rehearsal">B</span>
+      <p class="direction"><em>campanae</em></p>
+      <h2>A line, shadowed &mdash; <span class="term">tintinnabuli</span></h2>
+      <figure class="fig fig-stack">
+        <div class="tint-stave">
+          <span class="stave-tag">the melody &mdash; M-voice</span>
+          <div class="score" id="figTintM"></div>
+        </div>
+        <div class="tint-stave">
+          <span class="stave-tag">+ its shadow &mdash; T-voice</span>
+          <div class="score" id="figTintMT"></div>
+        </div>
+      </figure>
+      <p class="caption">
+        Arvo P&auml;rt&rsquo;s <em>tintinnabuli</em> (little bells): a melody moving
+        stepwise, shadowed by a second voice that sounds only the notes of the home
+        triad. Each shadow note is the melody note <b>snapped to the nearest triad
+        tone above</b> &mdash; a pure <code>map</code> over the line.
+        <button type="button" class="code-toggle" data-code="tint">show the rule&nbsp;<span aria-hidden="true">&#10214;/&#10215;</span></button>
+      </p>
+    </section>
+
+    <section class="movement">
+      <span class="rehearsal">C</span>
+      <p class="direction"><em>poco a poco</em></p>
+      <h2>The turnaround, enriched</h2>
+      <figure class="fig fig-stack">
+        <div class="tint-stave">
+          <span class="stave-tag">triads &mdash; C&nbsp;· Am&nbsp;· Dm&nbsp;· G</span>
+          <div class="score" id="figReharmTriads"></div>
+        </div>
+        <div class="tint-stave">
+          <span class="stave-tag">+ sevenths &mdash; Cmaj7&nbsp;· Am7&nbsp;· Dm7&nbsp;· G7</span>
+          <div class="score" id="figReharm7"></div>
+        </div>
+        <div class="tint-stave">
+          <span class="stave-tag">+ ninths &mdash; Cmaj9&nbsp;· Am9&nbsp;· Dm9&nbsp;· G9</span>
+          <div class="score" id="figReharm9"></div>
+        </div>
+      </figure>
+      <p class="caption">
+        One functional skeleton &mdash; <b>I&nbsp;· vi&nbsp;· ii&nbsp;· V</b> &mdash;
+        read three ways. Each pass names a <em>richer recipe</em>: add a seventh, add
+        a ninth. The progression never changes; only its <code>Quality</code> and
+        <code>Tension</code> do, and the chord grows a note at a time.
+        <button type="button" class="code-toggle" data-code="reharm">show the code&nbsp;<span aria-hidden="true">&#10214;/&#10215;</span></button>
+      </p>
+    </section>
+
+    <section class="coda">
+      <p class="fine">Fine.</p>
+      <div class="install">
+        <span class="direction-inline">to play —</span>
+        <code>spago install harmonia</code>
+      </div>
+      <nav class="colophon">
+        <a href="https://github.com/afcondon/purescript-harmonia">source on GitHub</a>
+        <a href="https://pursuit.purescript.org/packages/purescript-harmonia">docs on Pursuit</a>
+      </nav>
+      <p class="engraver">Engraved in the browser with Verovio · MIT · Andrew&nbsp;Condon</p>
+    </section>
+  </main>
+
+  <!-- ─────────────────────────── the code modal + per-example snippets ── -->
+  <dialog id="codeModal" class="code-modal" aria-label="The PureScript behind this example">
+    <div class="code-head">
+      <span class="code-title"></span>
+      <button type="button" class="code-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="code-body"></div>
+  </dialog>
+
+  <template id="code-reflavour" data-title="<em>reflavour</em> &mdash; one progression, every mode">
+<pre class="code"><code><span class="c">-- one progression, named once by scale degree</span>
+phrase :: <span class="t">Phrase</span>
+phrase = <span class="t">Phrase</span> (map located [ deg <span class="t">I</span> <span class="t">Maj</span> [], deg <span class="t">IV</span> <span class="t">Maj</span> [], deg <span class="t">V</span> <span class="t">Maj</span> [], deg <span class="t">I</span> <span class="t">Maj</span> [] ])
+  <span class="k">where</span> located = <span class="t">Located</span> { tonic: <span class="n">0</span>, mode: <span class="t">Ionian</span> }
+
+<span class="c">-- reflavour re-reads every degree in the new mode, re-deriving</span>
+<span class="c">-- each chord's quality from that mode's own diatonic harmony:</span>
+value (reflavour <span class="t">Mixolydian</span> phrase)   <span class="c">-- C   F   Gm  C</span>
+value (reflavour <span class="t">Aeolian</span>    phrase)   <span class="c">-- Cm  Fm  Gm  Cm</span></code></pre>
+    <p class="code-foot"><code>Harmonia.Graded</code> &middot; <code>reflavour</code> is total: a chord it can&rsquo;t re-read comes back unchanged, under <em>blame</em>.</p>
+  </template>
+
+  <template id="code-voicelead" data-title="<em>voiceLead</em> &mdash; least motion, common tones held">
+<pre class="code"><code><span class="c">-- a ii–V–I, as recipes</span>
+cadence = [ deg <span class="t">II</span> <span class="t">Min7</span> [], deg <span class="t">V</span> <span class="t">Dom7</span> [], deg <span class="t">I</span> <span class="t">Maj7</span> [] ]
+
+<span class="c">-- realize, then voice-lead the whole progression — least total</span>
+<span class="c">-- motion, common tones held on the very same pitch:</span>
+play cMajorKey identity cadence
+<span class="c">--  ii7    C4 D4 F4 A4</span>
+<span class="c">--  V7     B3 D4 F4 G4    — F4 held; A→G, C→B, D stays</span>
+<span class="c">--  Imaj7  B3 C4 E4 G4    — B3 and G4 held</span></code></pre>
+    <p class="code-foot"><code>Harmonia.Voicing</code> &middot; <code>play</code> = realize + <code>voiceLead</code> threaded across a progression.</p>
+  </template>
+
+  <template id="code-tint" data-title="<span class='term'>tintinnabuli</span> &mdash; the rule, in PureScript">
+<pre class="code"><code><span class="c">-- Arvo Pärt's mechanical T-voice rule: the shadow note is the</span>
+<span class="c">-- k-th triad pitch in a chosen direction from the melody note.</span>
+<span class="k">data</span> <span class="t">Position</span> = <span class="t">Above</span> <span class="t">Int</span> | <span class="t">Below</span> <span class="t">Int</span>
+
+nearestTriadNote :: <span class="t">Array</span> <span class="t">Int</span> -> <span class="t">Position</span> -> <span class="t">Int</span> -> <span class="t">Int</span>
+nearestTriadNote triad pos melody = <span class="k">case</span> pos <span class="k">of</span>
+  <span class="t">Above</span> k -> fromMaybe melody (above !! (k - <span class="n">1</span>))
+  <span class="t">Below</span> k -> fromMaybe melody (below !! (k - <span class="n">1</span>))
+  <span class="k">where</span>
+  above  = filter member (range (melody + <span class="n">1</span>) (melody + <span class="n">24</span>))
+  below  = filter member (reverse (range (melody - <span class="n">24</span>) (melody - <span class="n">1</span>)))
+  member n = elem (mod n <span class="n">12</span>) triad
+
+<span class="c">-- the whole texture is one line — a pure map over the melody:</span>
+tVoice = map (nearestTriadNote aMinor (<span class="t">Above</span> <span class="n">1</span>)) mVoice
+<span class="c">--  mVoice = A  B  C  D  E  D  C  B</span>
+<span class="c">--  tVoice = C  C  E  E  A  E  E  C   — the triad, shadowing</span></code></pre>
+    <p class="code-foot">from <code>Tidal.Tintinnabuli</code> in the live-coding engine &mdash; the <span class="t">Triad</span> newtype unwrapped to its pitch classes.</p>
+  </template>
+
+  <template id="code-reharm" data-title="<em>Quality</em> &amp; <em>Tension</em> &mdash; richer recipes, same skeleton">
+<pre class="code"><code><span class="c">-- one functional skeleton — I vi ii V — three ways.</span>
+<span class="c">-- each pass names a richer recipe; the progression is unchanged.</span>
+triads   = [ deg <span class="t">I</span> <span class="t">Maj</span> [],       deg <span class="t">VI</span> <span class="t">Min</span> [],       deg <span class="t">II</span> <span class="t">Min</span> [],       deg <span class="t">V</span> <span class="t">Maj</span> [] ]
+sevenths = [ deg <span class="t">I</span> <span class="t">Maj7</span> [],      deg <span class="t">VI</span> <span class="t">Min7</span> [],      deg <span class="t">II</span> <span class="t">Min7</span> [],      deg <span class="t">V</span> <span class="t">Dom7</span> [] ]
+ninths   = [ deg <span class="t">I</span> <span class="t">Maj7</span> [<span class="t">Add</span> <span class="n">9</span>], deg <span class="t">VI</span> <span class="t">Min7</span> [<span class="t">Add</span> <span class="n">9</span>], deg <span class="t">II</span> <span class="t">Min7</span> [<span class="t">Add</span> <span class="n">9</span>], deg <span class="t">V</span> <span class="t">Dom7</span> [<span class="t">Add</span> <span class="n">9</span>] ]
+
+map (realize cMajorKey) ninths
+<span class="c">--  Cmaj9  Am9  Dm9  G9    — tensions are just richer recipes</span></code></pre>
+    <p class="code-foot"><code>Harmonia.Chord</code> &middot; <code>Quality</code> and <code>Tension</code> name the colour; <code>realize</code> stacks the notes.</p>
+  </template>
+
+  <script src="vendor/verovio-toolkit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

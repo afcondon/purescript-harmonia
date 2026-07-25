@@ -1,0 +1,461 @@
+/* ── harmonia · the engraved sheet ─────────────────────────────────────────
+   Palette derived from iron-gall ink on laid paper; one vermilion reserved
+   for the single idea that needs colour — a chord that has left its key.     */
+
+:root {
+  --paper:      #f7f3e9;  /* laid-paper ivory ground            */
+  --paper-edge: #efe9d8;  /* the sheet's faint edge / panels    */
+  --ink:        #1c1b18;  /* engraver's near-black — staff+notes*/
+  --muted:      #6f6857;  /* warm grey, biased to the ground    */
+  --accent:     #2e4b6b;  /* iron-gall blue — links, rehearsal  */
+  --blame:      #c0392b;  /* vermilion — reserved for "away"    */
+  --rule:       #d9d1bd;  /* hairline dividers                  */
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono:  "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --measure: 40rem;       /* the reading column                 */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:      #191a1d;
+    --paper-edge: #202226;
+    --ink:        #e9e4d6;
+    --muted:      #9a9483;
+    --accent:     #86accb;
+    --blame:      #e06a5c;
+    --rule:       #2f3237;
+  }
+}
+:root[data-theme="light"] {
+  --paper: #f7f3e9; --paper-edge: #efe9d8; --ink: #1c1b18; --muted: #6f6857;
+  --accent: #2e4b6b; --blame: #c0392b; --rule: #d9d1bd;
+}
+:root[data-theme="dark"] {
+  --paper: #191a1d; --paper-edge: #202226; --ink: #e9e4d6; --muted: #9a9483;
+  --accent: #86accb; --blame: #e06a5c; --rule: #2f3237;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── above the fold: the plate ──────────────────────────────────────────── */
+
+.fold {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6vh 1.25rem 0;
+  position: relative;
+}
+
+.plate {
+  width: 100%;
+  max-width: 46rem;
+  text-align: center;
+}
+
+.opus {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+}
+
+.title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(3.2rem, 12vw, 6.5rem);
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-family: var(--serif);
+  font-size: 1.16rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 1.1rem auto 0;
+  max-width: 32rem;
+  text-wrap: balance;
+}
+
+.movement-label {
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin: 2.2rem 0 1.4rem;
+}
+.movement-label .mark { font-variant: small-caps; letter-spacing: 0.06em; }
+.movement-label em { font-style: italic; }
+
+/* the three modal staves — one line, reflavoured */
+.modes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  margin: 0.6rem 0 0;
+  text-align: left;
+}
+.mode-row {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  align-items: center;
+  gap: 1.6rem;
+}
+.mode-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  line-height: 1.25;
+}
+.mode-name {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+.mode-chords {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  margin-top: 0.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.mode-mood {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-top: 0.2rem;
+}
+@media (max-width: 40rem) {
+  .mode-row { grid-template-columns: 1fr; gap: 0.3rem; }
+  .mode-label { flex-direction: row; align-items: baseline; gap: 0.6rem; text-align: left; }
+}
+
+.gloss {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.28rem;
+  color: var(--ink);
+  margin: 2.2rem auto 0;
+  max-width: 30rem;
+  text-wrap: balance;
+}
+.gloss em { font-style: normal; font-variant: small-caps; letter-spacing: 0.03em; }
+
+.hero-code { margin: 1.4rem 0 0; }
+
+.scroll-cue {
+  position: absolute;
+  bottom: 1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  text-decoration: none;
+  animation: nod 2.4s ease-in-out infinite;
+}
+@keyframes nod {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.55; }
+  50%      { transform: translateX(-50%) translateY(4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue { animation: none; }
+}
+
+/* ── the scores ─────────────────────────────────────────────────────────── */
+
+.score { width: 100%; }
+.score svg { width: 100%; height: auto; display: block; }
+
+/* Verovio paints in black by default; recolour to the page's ink token so the
+   engraving belongs to the sheet in both themes. */
+.score svg .note,
+.score svg .rest,
+.score svg .beam,
+.score svg .stem,
+.score svg .staff path,
+.score svg .barLineAttr,
+.score svg .barLine,
+.score svg .ledgerLines path,
+.score svg .accid,
+.score svg .clef,
+.score svg .meterSig,
+.score svg .keySig,
+.score svg .tie,
+.score svg .slur { color: var(--ink); }
+
+.score svg g.note,
+.score svg .staff,
+.score svg .barLine,
+.score svg .stem,
+.score svg .ledgerLines,
+.score svg .clef,
+.score svg .keySig,
+.score svg .meterSig,
+.score svg .tie,
+.score svg .slur { fill: var(--ink); stroke: var(--ink); }
+
+.score svg .staff path,
+.score svg .stem,
+.score svg .barLine path,
+.score svg .ledgerLines path,
+.score svg .tie path,
+.score svg .slur path { stroke: var(--ink); }
+
+/* chord symbols ("ii7", "V7", …) engraved above the staff */
+.score svg .harm,
+.score svg .dir,
+.score svg .fing { fill: var(--muted); color: var(--muted); }
+
+/* lyrics under the notes */
+.score svg .verse,
+.score svg .syl { fill: var(--ink); color: var(--ink); }
+
+/* the blamed chord — every notehead + stem in vermilion */
+.score svg g.note.blamed,
+.score svg g.note.blamed * { fill: var(--blame); stroke: var(--blame); color: var(--blame); }
+
+/* ── below the fold: the reading ───────────────────────────────────────── */
+
+main {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 4rem 1.5rem 6rem;
+}
+
+.lede {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  margin: 0 0 4.5rem;
+  color: var(--ink);
+}
+.lede b { font-weight: 600; }
+
+.movement {
+  position: relative;
+  padding: 2.8rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.rehearsal {
+  position: absolute;
+  top: 2.8rem;
+  left: -3.6rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: 2px;
+}
+@media (max-width: 46rem) {
+  .rehearsal { position: static; margin-bottom: 0.6rem; display: inline-grid; }
+}
+
+.direction {
+  font-style: italic;
+  color: var(--muted);
+  font-size: 1.05rem;
+  margin: 0 0 0.1rem;
+}
+.movement h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.9rem;
+  letter-spacing: 0.01em;
+  margin: 0 0 1.6rem;
+  text-wrap: balance;
+}
+
+.fig {
+  margin: 0 0 1.6rem;
+  padding: 1.5rem 1.25rem;
+  background: var(--paper-edge);
+  border-radius: 3px;
+}
+
+.caption {
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--ink);
+  margin: 0;
+  max-width: 34rem;
+}
+.blame-word { color: var(--blame); font-weight: 600; }
+.term { font-style: italic; }
+
+/* tintinnabuli: two stacked staves, each tagged */
+.fig-stack { display: flex; flex-direction: column; gap: 1.2rem; }
+.tint-stave { display: flex; flex-direction: column; gap: 0.4rem; }
+.stave-tag {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* the "show the rule" affordance */
+.code-toggle {
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 3px;
+  padding: 0.15rem 0.6rem;
+  margin-left: 0.3rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.code-toggle:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: var(--accent); }
+.code-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.code-toggle span { font-family: var(--mono); opacity: 0.7; }
+
+/* ── the code modal ─────────────────────────────────────────────────────── */
+
+.code-modal {
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  max-width: min(46rem, 92vw);
+  width: 100%;
+  background: var(--paper-edge);
+  color: var(--ink);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.28);
+}
+.code-modal::backdrop { background: rgba(20, 18, 14, 0.42); backdrop-filter: blur(2px); }
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+.code-title { font-family: var(--serif); font-size: 1rem; color: var(--ink); }
+.code-close {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+.code-close:hover { color: var(--ink); }
+.code-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+pre.code {
+  margin: 0;
+  padding: 1.3rem 1.4rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--ink);
+  tab-size: 2;
+}
+pre.code .c { color: var(--muted); font-style: italic; }
+pre.code .k { color: var(--accent); }
+pre.code .t { color: color-mix(in srgb, var(--accent) 78%, var(--ink)); font-weight: 600; }
+pre.code .n { color: var(--blame); }
+
+.code-foot {
+  margin: 0;
+  padding: 0.8rem 1.4rem 1.1rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+.code-foot code { color: var(--muted); }
+
+/* ── coda ───────────────────────────────────────────────────────────────── */
+
+.coda {
+  margin-top: 3rem;
+  padding-top: 2.8rem;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+.fine {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--muted);
+  margin: 0 0 2rem;
+}
+.install {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.7rem 1.1rem;
+  background: var(--paper-edge);
+  border-radius: 3px;
+}
+.direction-inline { font-style: italic; color: var(--muted); font-size: 0.95rem; }
+
+.colophon {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin: 2.4rem 0 1.4rem;
+}
+
+/* ── shared inline elements ─────────────────────────────────────────────── */
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  color: var(--accent);
+}
+.install code { color: var(--ink); font-size: 0.95rem; letter-spacing: 0.01em; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: border-color 0.15s ease;
+}
+a:hover { border-bottom-color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 1px; }
+
+.engraver {
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0;
+}
