@@ -58,7 +58,7 @@ import Data.Maybe (fromMaybe)
 import Harmonia.Chord (Chord)
 import Harmonia.Freedom (Allowed, Freedom, Home)
 import Harmonia.Palette (ChordType, Level, typeOn, typeSuffix)
-import Harmonia.OpenVoicing (Open, Rooted, playOpen)
+import Harmonia.OpenVoicing (Open, Rooted, Spread, playOpen, spreadOf)
 import Harmonia.Voicing (Voicing, voicingMidi)
 import Harmonia.Walk (Seed, Setting, walk)
 
@@ -81,13 +81,20 @@ spec h f lv duplicates s n =
 
 -- | One chord of a progression, carrying every reading of itself a consumer is
 -- | likely to want: its address in the vocabulary (`root`, `chordType`), its
--- | pitch content (`chord`), its written name, and its notes.
+-- | pitch content (`chord`), its written name, its notes, and the `spread` those
+-- | notes came from.
+-- |
+-- | The spread rides along because an editor needs it and cannot reliably
+-- | recover it — `spreadOf` is a matching, not an inverse. A chord that was
+-- | GENERATED here knows exactly which displacement produced it, so handing
+-- | that on costs nothing and saves the editor from guessing.
 type Voiced =
   { root :: Int
   , chordType :: ChordType
   , chord :: Chord
   , name :: String
   , voicing :: Voicing
+  , spread :: Spread
   }
 
 -- | The generator's address realised as pitch content with its root still named
@@ -120,6 +127,7 @@ voice o as = zipWith build as (playOpen o (map rooted as))
     , chord: typeOn a.root a.chordType
     , name: nameOf a
     , voicing: v
+    , spread: spreadOf o (rooted a) v
     }
 
 -- | **The door: a spec in, voiced chords out.**

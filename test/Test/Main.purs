@@ -12,7 +12,7 @@ import Test.ChordSpec (runChordTests)
 import Test.FreedomSpec (runFreedomTests)
 import Test.GaloisSpec (runGaloisTests)
 import Test.GradedSpec (runGradedTests)
-import Test.OpenVoicingSpec (runOpenVoicingTests)
+import Test.OpenVoicingSpec (runOpenVoicingTests, runSpreadTests)
 import Test.PaletteSpec (runPaletteTests)
 import Test.ProgressionSpec (runProgressionTests)
 import Test.PropSpec (runPropTests)
@@ -35,6 +35,7 @@ main = do
   runRecogniseTests
   runPaletteTests
   runOpenVoicingTests
+  runSpreadTests
   runFreedomTests
   runWalkTests
   runProgressionTests

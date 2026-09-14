@@ -34,11 +34,18 @@
 -- | scale degree at all.
 module Harmonia.OpenVoicing
   ( Rooted
+  , Place(..)
+  , omit
+  , at
+  , octaves
+  , sounds
   , Spread
+  , inPlace
   , Open
   , defaults
   , tonesOf
   , stackFrom
+  , baseStack
   , displace
   , spreads
   , candidates
@@ -46,6 +53,13 @@ module Harmonia.OpenVoicing
   , span
   , openVoicing
   , playOpen
+  -- editing a voicing as a spread
+  , applySpread
+  , spreadOf
+  , moveTone
+  , doubleTone
+  , thinTone
+  , toggleTone
   ) where
 
 import Prelude
@@ -64,7 +78,57 @@ type Rooted = { root :: Int, chord :: Chord }
 -- | How far each tone above the bass is lifted, in OCTAVES. One entry per
 -- | non-bass tone, in ascending order of the close-position stack. All zeroes
 -- | is close position; the bass has no entry because it never moves.
-type Spread = Array Int
+-- | **Where one chord tone sounds: the octaves it is heard at, above its
+-- | position in the stack.**
+-- |
+-- | A tone is not a note. `Place [0]` is the tone sounding once where the stack
+-- | puts it, `Place [1]` an octave higher, `Place [0, 1]` the same tone doubled
+-- | an octave up, and `Place []` the tone NOT PLAYED — which is Progressions'
+-- | own `x`, the greyed-out note you can switch back on.
+-- |
+-- | Omission and doubling being one axis rather than two is the whole reason
+-- | for the type. The ladder's three gestures are then edits to one value:
+-- | drag moves an octave, ⌥-drag adds one, dragging the last one away omits
+-- | the tone. A flag for "played" beside a lift would make those three gestures
+-- | three mechanisms, and make `Place [0, 1]` unrepresentable.
+newtype Place = Place (Array Int)
+
+derive instance eqPlace :: Eq Place
+derive instance ordPlace :: Ord Place
+
+instance showPlace :: Show Place where
+  show (Place ks) = "Place " <> show ks
+
+-- | The tone is not played.
+omit :: Place
+omit = Place []
+
+-- | The tone sounds once, `k` octaves above its stack position.
+at :: Int -> Place
+at k = Place [ k ]
+
+-- | The octaves this tone sounds at, as given.
+octaves :: Place -> Array Int
+octaves (Place ks) = ks
+
+-- | Is the tone heard at all?
+sounds :: Place -> Boolean
+sounds (Place ks) = not (Array.null ks)
+
+-- | **A voicing as one place per chord tone** — the non-bass tones, in stack
+-- | order. The bass is not here because it is not free: pinning it to the root
+-- | is the strategy's one constraint.
+-- |
+-- | This is the form worth STORING. A `Spread` is a handful of small integers
+-- | that means the same thing on any chord, so a voicing you liked can be kept
+-- | and applied elsewhere; an array of absolute MIDI notes can only ever come
+-- | back on the notes it was taken from.
+type Spread = Array Place
+
+-- | Every tone sounding once, where the stack puts it — the plain closed form
+-- | a spread is edited away from.
+inPlace :: Int -> Spread
+inPlace n = Array.replicate (max 0 n) (at 0)
 
 -- | `octave` — where the bass sits, MIDI-style (3 puts middle C's octave above
 -- | it). `reach` — the most octaves any one tone may be lifted. `aim` —
@@ -130,16 +194,24 @@ displace sp notes = case Array.uncons notes of
   Nothing -> []
   Just { head: bass, tail: rest } ->
     if length sp /= length rest then notes
-    else cons bass (sort (Array.zipWith (\k n -> n + 12 * k) sp rest))
+    else cons bass (sort (Array.concat (Array.zipWith spoken sp rest)))
+  where
+  spoken (Place ks) n = map (\k -> n + 12 * k) ks
 
 -- | Every displacement of `n` non-bass tones within `reach`.
+-- |
+-- | **Deliberately neither omits nor doubles.** Those are edits a player makes,
+-- | not moves a generator should make on its own: the source omits rarely
+-- | (measured at 2% of chords, and only ever the fifth) and enumerating the
+-- | omissions here would multiply a candidate space that is already
+-- | `(reach+1)^n` for no musical gain.
 spreads :: Int -> Int -> Array Spread
 spreads reach n =
   if n <= 0 then [ [] ]
   else do
     k <- range 0 (max 0 reach)
     rest <- spreads reach (n - 1)
-    pure (cons k rest)
+    pure (cons (at k) rest)
 
 -- | Every open voicing of a chord available under these settings.
 candidates :: Open -> Rooted -> Array Voicing
@@ -150,6 +222,90 @@ candidates o r =
     base = stackFrom bass tones
   in
     map (\sp -> Voicing (displace sp base)) (spreads o.reach (length base - 1))
+
+-- ---------------------------------------------------------------------------
+-- A voicing as an editable spread
+-- ---------------------------------------------------------------------------
+
+-- | The chord's tones stacked upward from the pinned bass, one entry per tone —
+-- | the frame a `Spread` displaces. Public because an editor has to draw it: the
+-- | ladder's rows ARE these positions, and an omitted tone still needs a row to
+-- | be switched back on at.
+baseStack :: Open -> Rooted -> Array Int
+baseStack o r = stackFrom (mod r.root 12 + 12 * (o.octave + 1)) (tonesOf o.minTones r)
+
+-- | Render a spread as notes. The inverse direction from `spreadOf`, and the
+-- | one an editor runs on every gesture.
+applySpread :: Open -> Rooted -> Spread -> Voicing
+applySpread o r sp = Voicing (displace sp (baseStack o r))
+
+-- | **Read an existing voicing back as a spread.**
+-- |
+-- | Not an inverse, and the docs should not pretend otherwise: `displace`
+-- | re-sorts, so the correspondence between a note and the tone it came from is
+-- | not carried in the result. This recovers it by MATCHING — each note is
+-- | assigned to the lowest stack tone of its pitch class that sits at or below
+-- | it, and the octave distance becomes the lift.
+-- |
+-- | Two consequences worth knowing before trusting it:
+-- |
+-- |   * When the stack doubles a tone (`minTones` pads short chords with extra
+-- |     roots) two positions share a pitch class, and the match is greedy —
+-- |     lowest first. The notes are right, which position they are credited to
+-- |     may not be.
+-- |   * A note whose pitch class is not in the chord at all cannot be placed and
+-- |     is dropped. That is the honest answer: it was never a displacement of
+-- |     this chord, so no spread describes it.
+-- |
+-- | It exists so that ONE editor serves every lens. A chord from the Banks
+-- | generator knows its spread already; a chord off the tonnetz or the lattice
+-- | does not, and still has to open in the same widget.
+spreadOf :: Open -> Rooted -> Voicing -> Spread
+spreadOf o r v = map (\b -> Place (sort (map (\n -> (n - b) / 12) (claimed b)))) positions
+  where
+  positions = fromMaybe [] (Array.tail (baseStack o r))
+  uppers = case Array.uncons (voicingMidi v) of
+    Nothing -> []
+    Just { tail: rest } -> sort rest
+  -- a note belongs to the LOWEST stack position sharing its pitch class that it
+  -- sits at or above; greedy, so a doubled tone credits the lower position.
+  owner n = Array.head (filter (\b -> mod (n - b) 12 == 0 && n >= b) positions)
+  claimed b = filter (\n -> owner n == Just b) uppers
+
+-- ---------------------------------------------------------------------------
+-- The ladder's gestures, as edits to a spread
+-- ---------------------------------------------------------------------------
+
+-- | Move tone `i`'s LOWEST sounding octave by `d`, clamped into `0 .. reach`.
+-- | A plain drag: the tone keeps sounding once, at a new height.
+moveTone :: Open -> Int -> Int -> Spread -> Spread
+moveTone o i d = mapPlace i \(Place ks) -> case Array.head (sort ks) of
+  Nothing -> Place ks
+  Just k -> Place (sort (nub (cons (clampReach o (k + d)) (fromMaybe [] (Array.tail (sort ks))))))
+
+-- | Add an octave copy of tone `i` above its current top — ⌥-drag. A tone that
+-- | was omitted comes back in place, which is what the gesture should mean on a
+-- | greyed row.
+doubleTone :: Open -> Int -> Spread -> Spread
+doubleTone o i = mapPlace i \(Place ks) -> case Array.last (sort ks) of
+  Nothing -> at 0
+  Just k -> Place (sort (nub (cons (clampReach o (k + 1)) ks)))
+
+-- | Drop tone `i`'s topmost copy; the last one leaves the tone omitted. The
+-- | undo of `doubleTone`, and the way a fifth gets dropped.
+thinTone :: Int -> Spread -> Spread
+thinTone i = mapPlace i \(Place ks) ->
+  Place (fromMaybe [] (Array.init (sort ks)))
+
+-- | Silence the tone, or bring it back in place — the greyed-note click.
+toggleTone :: Int -> Spread -> Spread
+toggleTone i = mapPlace i \pl -> if sounds pl then omit else at 0
+
+clampReach :: Open -> Int -> Int
+clampReach o k = max 0 (min (max 0 o.reach) k)
+
+mapPlace :: Int -> (Place -> Place) -> Spread -> Spread
+mapPlace i f sp = fromMaybe sp (Array.modifyAt i f sp)
 
 topNote :: Voicing -> Maybe Int
 topNote = Array.last <<< voicingMidi

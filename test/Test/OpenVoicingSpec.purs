@@ -9,6 +9,7 @@
 -- | an adjective.
 module Test.OpenVoicingSpec
   ( runOpenVoicingTests
+  , runSpreadTests
   ) where
 
 import Prelude
@@ -20,7 +21,11 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Effect.Console (log)
 import Harmonia.Chord (Chord(..))
-import Harmonia.OpenVoicing (Rooted, defaults, openVoicing, playOpen, span, topNote)
+import Harmonia.OpenVoicing
+  ( Rooted, applySpread, at, baseStack, defaults, doubleTone, inPlace
+  , moveTone, octaves, openVoicing, playOpen, sounds, span, spreadOf
+  , spreads, thinTone, toggleTone, topNote
+  )
 import Harmonia.Palette (ChordType(..), palette, typeOn)
 import Harmonia.Voicing (Voicing(..), voiceLead, voicingMidi)
 import Test.Assert (assertEqual', assertTrue')
@@ -172,3 +177,89 @@ suffixOf (ChordType t) = t.suffix
 
 pcsOf :: Chord -> Array Int
 pcsOf (Chord pcs) = sort (nub pcs)
+
+-- ---------------------------------------------------------------------------
+-- A voicing as an editable spread (2026-09-14)
+-- ---------------------------------------------------------------------------
+
+runSpreadTests :: Effect Unit
+runSpreadTests = do
+  log "\n--- Harmonia.OpenVoicing — a voicing as an editable spread ---"
+
+  let cmaj = { root: 0, chord: Chord [ 0, 4, 7 ] } :: Rooted
+      o = defaults
+      stack = baseStack o cmaj
+      n = length stack - 1
+
+  -- The frame an editor draws: the pinned bass, then one row per tone.
+  assertTrue' "the stack begins on the root, in the chosen octave"
+    (Array.head stack == Just (12 * (o.octave + 1)))
+  assertTrue' "the stack ascends strictly"
+    (all identity (Array.zipWith (\a b -> b > a) stack (Array.drop 1 stack)))
+
+  -- Round trip: every voicing the generator can produce reads back as the
+  -- spread that made it. This is the property the editor leans on.
+  let sps = spreads o.reach n
+      roundTrips sp = spreadOf o cmaj (applySpread o cmaj sp) == sp
+  assertTrue' "every generated spread round-trips through its voicing"
+    (all roundTrips sps)
+  assertEqual' "the enumeration is (reach+1)^tones and omits nothing"
+    { actual: length sps, expected: pow (o.reach + 1) n }
+  assertTrue' "no enumerated spread omits or doubles a tone"
+    (all (\sp -> all (\pl -> length (octaves pl) == 1) sp) sps)
+
+  -- What openVoicing itself chose is readable the same way.
+  let v0 = openVoicing o cmaj
+      sp0 = spreadOf o cmaj v0
+  assertEqual' "the chosen voicing reads back and re-renders identically"
+    { actual: voicingMidi (applySpread o cmaj sp0), expected: voicingMidi v0 }
+
+  -- Omission: the thing the ladder has never had.
+  let dropped = toggleTone 1 (inPlace n)
+  assertTrue' "toggling a tone silences it" (not (sounds (fromMaybe (at 0) (index dropped 1))))
+  assertEqual' "an omitted tone loses exactly one note"
+    { actual: length (voicingMidi (applySpread o cmaj dropped))
+    , expected: length (voicingMidi (applySpread o cmaj (inPlace n))) - 1
+    }
+  assertEqual' "toggling twice returns the plain voicing"
+    { actual: toggleTone 1 dropped, expected: inPlace n }
+
+  -- Doubling and thinning are one axis with omission, which is the point of
+  -- `Place` holding an array rather than a lift plus a flag.
+  let doubled = doubleTone o 0 (inPlace n)
+  assertEqual' "doubling adds an octave copy of that tone"
+    { actual: length (voicingMidi (applySpread o cmaj doubled))
+    , expected: length (voicingMidi (applySpread o cmaj (inPlace n))) + 1
+    }
+  assertEqual' "thinning undoes doubling" { actual: thinTone 0 doubled, expected: inPlace n }
+  assertTrue' "thinning the last copy omits the tone"
+    (not (sounds (fromMaybe (at 0) (index (thinTone 0 (inPlace n)) 0))))
+  assertEqual' "doubling an omitted tone brings it back in place"
+    { actual: doubleTone o 0 (toggleTone 0 (inPlace n)), expected: inPlace n }
+
+  -- Moving is clamped to the reach the generator uses, so an editor cannot
+  -- produce a spread the enumeration would never have offered.
+  let up = moveTone o 0 99 (inPlace n)
+  assertEqual' "moving up is clamped to reach"
+    { actual: index up 0, expected: Just (at o.reach) }
+  assertEqual' "moving down is clamped at the stack position"
+    { actual: index (moveTone o 0 (-99) (inPlace n)) 0, expected: Just (at 0) }
+
+  -- The bass is never a tone the spread can touch: it stays the root.
+  let anyEdit = doubleTone o 0 (toggleTone 1 (moveTone o 2 1 (inPlace n)))
+  assertEqual' "no edit can move the bass off the root"
+    { actual: map (\m -> mod m 12) (Array.head (voicingMidi (applySpread o cmaj anyEdit)))
+    , expected: Just 0
+    }
+
+  -- A spread means the same thing on a different chord — the property that
+  -- makes a kept voicing worth keeping.
+  let fmin = { root: 5, chord: Chord [ 5, 8, 0 ] } :: Rooted
+      shape sp ro = map (\m -> m - fromMaybe 0 (Array.head (voicingMidi (applySpread o ro sp))))
+                      (voicingMidi (applySpread o ro sp))
+  assertEqual' "a spread transplanted to another chord keeps its shape's tone count"
+    { actual: length (shape doubled fmin), expected: length (shape doubled cmaj) }
+
+  log ("  " <> show (length sps) <> " spreads round-tripped; omission, doubling and clamping checked")
+  where
+  pow b e = if e <= 0 then 1 else b * pow b (e - 1)
