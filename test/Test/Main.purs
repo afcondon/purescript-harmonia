@@ -11,6 +11,8 @@ import Test.AnchorSpec (runAnchorTests)
 import Test.ChordSpec (runChordTests)
 import Test.GaloisSpec (runGaloisTests)
 import Test.GradedSpec (runGradedTests)
+import Test.OpenVoicingSpec (runOpenVoicingTests)
+import Test.PaletteSpec (runPaletteTests)
 import Test.PropSpec (runPropTests)
 import Test.QuantiseSpec (runQuantiseTests)
 import Test.VoiceSpec (runVoiceTests)
@@ -26,4 +28,6 @@ main = do
   runQuantiseTests
   runGaloisTests
   runVoiceTests
+  runPaletteTests
+  runOpenVoicingTests
   log "\nAll Harmonia golden tests passed."
