@@ -60,6 +60,8 @@ module Harmonia.Palette
   , ChordType(..)
   , chordType
   , typeIntervals
+  , typeSuffix
+  , typeLevel
   , typeOn
   , palette
   , majorTriad
@@ -134,6 +136,21 @@ chordType lv q ts sfx =
 -- | cannot drift.
 typeIntervals :: ChordType -> Chord
 typeIntervals = typeOn 0
+
+-- | The type's written suffix — the part of a chord's name that is NOT its root
+-- | (`"m7"`, `"maj9"`, `""` for a plain major).
+-- |
+-- | Public because a consumer that draws chords needs to label them, and the
+-- | alternative is every consumer re-deriving a suffix from the quality and the
+-- | tensions. The ROOT half of the name deliberately stays outside: how a pitch
+-- | class is spelled depends on the key it is read in (A♭ or G♯), and that is
+-- | a decision the caller is better placed to make than the palette is.
+typeSuffix :: ChordType -> String
+typeSuffix (ChordType t) = t.suffix
+
+-- | The complexity level at which the type first becomes available.
+typeLevel :: ChordType -> Level
+typeLevel (ChordType t) = t.level
 
 -- | The type realised on an absolute root pitch class.
 -- |
