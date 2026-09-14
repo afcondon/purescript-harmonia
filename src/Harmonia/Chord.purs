@@ -95,6 +95,31 @@ data Quality
   | FullyDim      -- diminished 7          [0, 3, 6, 9]
   | MinMaj7       -- minor major 7         [0, 3, 7, 11]
   | AugMaj7       -- augmented major 7     [0, 4, 8, 11]
+  -- | **Altered fifths need their own quality, and here is why.**
+  -- |
+  -- | `Sharp` and `Flat` ADD a tone; they do not move one. So `Maj` with
+  -- | `Flat 5` is `[0, 4, 7, 6]` — a major triad carrying both fifths — which
+  -- | is the right reading for a ♯11 over a chord and the wrong one for a
+  -- | chord whose fifth IS lowered. The alternative spelling,
+  -- | `Maj <> [NoFifth, Flat 5]`, gives the right notes but only by running a
+  -- | fold in the right order, and a reader has to simulate it to know what
+  -- | chord they are looking at.
+  | MajFlat5      -- major ♭5              [0, 4, 6]
+  | Min7Sharp5    -- minor 7 ♯5            [0, 3, 8, 10]
+  -- | **Stacks of fourths, which are not tertian at all.**
+  -- |
+  -- | Reachable from a triad only as a fiction — `Dom7 <> [Sus 4, NoFifth]`
+  -- | has the notes of `Quartal3` and none of its meaning, and that name would
+  -- | then propagate into every label and every analysis downstream. `q3` and
+  -- | `q4` count notes, after the convention of the source vocabulary.
+  | Quartal3      -- three stacked 4ths    [0, 5, 10]
+  | Quartal4      -- four stacked 4ths     [0, 5, 10, 15]
+  -- | **Scriabin's Mystic (Prometheus) chord**, six notes built from perfect,
+  -- | diminished and augmented fourths. Easiest to state as its contraction
+  -- | into a scale — 2-2-2-3-1-2 in semitones, C–D–E–F♯–A–B♭ — and its whole
+  -- | point is that the quartal construction leaves it outside any tonality,
+  -- | so it resolves wherever you like.
+  | Mystic        -- Prometheus            [0, 2, 4, 6, 9, 10]
 
 derive instance eqQuality :: Eq Quality
 derive instance ordQuality :: Ord Quality
@@ -112,6 +137,11 @@ instance showQuality :: Show Quality where
     FullyDim  -> "FullyDim"
     MinMaj7   -> "MinMaj7"
     AugMaj7   -> "AugMaj7"
+    MajFlat5  -> "MajFlat5"
+    Min7Sharp5 -> "Min7Sharp5"
+    Quartal3  -> "Quartal3"
+    Quartal4  -> "Quartal4"
+    Mystic    -> "Mystic"
 
 -- | Interval set of a chord quality, in semitones from the root.
 qualityIntervals :: Quality -> Array Int
@@ -127,6 +157,13 @@ qualityIntervals = case _ of
   FullyDim -> [0, 3, 6, 9]
   MinMaj7  -> [0, 3, 7, 11]
   AugMaj7  -> [0, 4, 8, 11]
+  MajFlat5 -> [0, 4, 6]
+  Min7Sharp5 -> [0, 3, 8, 10]
+  Quartal3 -> [0, 5, 10]
+  -- Left unreduced: `realize` takes everything mod 12, and writing the stack
+  -- as a stack is the only place the chord's construction is visible.
+  Quartal4 -> [0, 5, 10, 15]
+  Mystic   -> [0, 2, 4, 6, 9, 10]
 
 -- ---------------------------------------------------------------------------
 -- Tension — additions, alterations, suspensions
