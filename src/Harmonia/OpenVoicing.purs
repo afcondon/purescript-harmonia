@@ -56,9 +56,11 @@ module Harmonia.OpenVoicing
   -- editing a voicing as a spread
   , applySpread
   , spreadOf
+  , setTone
   , moveTone
   , doubleTone
   , thinTone
+  , dropAt
   , toggleTone
   ) where
 
@@ -276,6 +278,13 @@ spreadOf o r v = map (\b -> Place (sort (map (\n -> (n - b) / 12) (claimed b))))
 -- The ladder's gestures, as edits to a spread
 -- ---------------------------------------------------------------------------
 
+-- | Set tone `i` outright — the primitive the other edits are conveniences
+-- | over, and the one an editor wants when the gesture names its destination
+-- | rather than a direction (clicking the octave you want, rather than dragging
+-- | towards it).
+setTone :: Int -> Place -> Spread -> Spread
+setTone i pl = mapPlace i (const pl)
+
 -- | Move tone `i`'s LOWEST sounding octave by `d`, clamped into `0 .. reach`.
 -- | A plain drag: the tone keeps sounding once, at a new height.
 moveTone :: Open -> Int -> Int -> Spread -> Spread
@@ -290,6 +299,17 @@ doubleTone :: Open -> Int -> Spread -> Spread
 doubleTone o i = mapPlace i \(Place ks) -> case Array.last (sort ks) of
   Nothing -> at 0
   Just k -> Place (sort (nub (cons (clampReach o (k + 1)) ks)))
+
+-- | Drop ONE copy of tone `i` — the one sounding at octave `k`. Removing the
+-- | last copy leaves the tone omitted.
+-- |
+-- | Distinct from `thinTone`, and the distinction is the whole point of a
+-- | `Place` holding several octaves: a doubled tone is ONE tone heard twice, so
+-- | an editor that lets you click a note must be able to say WHICH note. Acting
+-- | on the tone instead silences both copies at once, which reads as a bug
+-- | however defensible the model is.
+dropAt :: Int -> Int -> Spread -> Spread
+dropAt i k = mapPlace i \(Place ks) -> Place (filter (_ /= k) ks)
 
 -- | Drop tone `i`'s topmost copy; the last one leaves the tone omitted. The
 -- | undo of `doubleTone`, and the way a fifth gets dropped.
