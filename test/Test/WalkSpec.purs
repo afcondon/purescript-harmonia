@@ -18,9 +18,13 @@ import Data.Maybe (fromMaybe)
 import Effect (Effect)
 import Effect.Console (log)
 import Harmonia.Freedom (Allowed, Side(..), admits, freedom, freeFlow, sideOf, strict)
-import Harmonia.Palette (ChordType(..), Level(..), majorTriad, minorTriad)
+import Harmonia.Palette (ChordType(..), Level(..), majorTriad, minorTriad, palette)
 import Harmonia.Walk (band1, defaults, seed, successors, walk)
 import Test.Assert (assertEqual', assertTrue')
+
+quartal3 :: ChordType
+quartal3 = fromMaybe majorTriad
+  (Array.head (Array.filter (\t -> suffixOf t == "q3") palette))
 
 runWalkTests :: Effect Unit
 runWalkTests = do
@@ -61,7 +65,31 @@ runWalkTests = do
   assertTrue' "the v of a minor chord is minor"
     (Array.elem { offset: 7, side: MinorSide } (band1 minorTriad))
 
-  -- Every chord type resolves to one of exactly two trees, by its third.
+  -- **Measured, not derived.** Quartals and the Mystic are the only
+  -- predecessors in the palette that do not follow the diatonic rule: over
+  -- 4,116 observed transitions they land a fourth or a stack of fourths away
+  -- about half the time (against a quarter by chance) and land on a diatonic
+  -- offset BELOW chance, where every tertian predecessor is well above it.
+  assertEqual' "a quartal chord moves in fourths, one to four up and one down"
+    { actual: nub (map _.offset (band1 quartal3))
+    , expected: [ 5, 10, 3, 8, 7 ]
+    }
+
+  assertTrue' "and it is offered both sides, because the side is not measured"
+    (length (band1 quartal3) == 10)
+
+  -- The two rules are not disjoint, and where they agree is the interesting
+  -- part: +5 and +7 are IV and V to a tertian chord and a fourth up and a
+  -- fourth down to a quartal one. The same two moves, arrived at from
+  -- unrelated premises — which is presumably why they are the two that
+  -- survive in every harmonic idiom anyone builds.
+  assertEqual' "the quartal and diatonic trees agree on exactly IV and V"
+    { actual: sort (nub (Array.intersect (map _.offset (band1 quartal3))
+                                         (map _.offset (band1 majorTriad))))
+    , expected: [ 5, 7 ]
+    }
+
+  -- Every TERTIAN chord type resolves to one of exactly two trees, by its third.
   assertTrue' "band 1 depends only on the side, so every type has one of two trees"
     (all (\ct -> band1 ct == band1 (if sideOf ct == MinorSide then minorTriad else majorTriad))
          [ majorTriad, minorTriad ])

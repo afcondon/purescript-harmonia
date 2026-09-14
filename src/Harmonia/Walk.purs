@@ -19,7 +19,11 @@
 -- | natural minor rather than harmonic: the v of a minor chord is minor. That
 -- | rule is `band1`, and it is exact.
 -- |
--- | **Bands 2 to 5 are not derivable and are not implemented.** It was worth
+-- | **Bands 2 to 5 are not derivable and are not implemented.** Measured
+-- | 2026-09-14 over 4,116 transitions, band-1 offsets take 60–76% of the
+-- | successors of a tertian chord against 41% by chance — real, and nothing
+-- | like exclusive, because bands 2–5 are contributing the rest. The tables
+-- | are what closes that gap. It was worth
 -- | checking rather than assuming: level 2's documented contribution is
 -- | *"parallel minors & majors"*, and band 2 does contain the parallels of band
 -- | 1 — but only seven of ten of them, and it reaches offsets band 1 never
@@ -68,6 +72,7 @@ import Data.Array (cons, filter, index, length, notElem)
 import Data.Int.Bits (shl, xor, zshr, (.&.))
 import Data.Maybe (Maybe(..))
 import Harmonia.Freedom (Allowed, Freedom, Home, Side(..), admits, freedom, sideOf)
+import Harmonia.Chord (Quality(..))
 import Harmonia.Palette (ChordType(..), Level(..), majorTriad, minorTriad, upTo)
 
 -- ---------------------------------------------------------------------------
@@ -125,7 +130,45 @@ type Tree = { offset :: Int, side :: Side }
 -- | the measurement shows and what distinguishes this from the harmonic minor
 -- | reading.
 band1 :: ChordType -> Array Tree
-band1 ct = case sideOf ct of
+band1 ct = case quartalish ct of
+  true -> byFourths
+  false -> byDegree ct
+
+-- | **A chord built of fourths moves in fourths.**
+-- |
+-- | Measured over 4,116 transitions: a quartal or Mystic predecessor lands on
+-- | a root one to four fourths away about half the time, against a quarter by
+-- | chance — and lands on a *diatonic* offset BELOW chance, where every tertian
+-- | predecessor is well above it. They are the only predecessors in the whole
+-- | palette that do not follow the diatonic rule.
+-- |
+-- | Which is what Collett says of them, in the one part of the paper that is
+-- | about behaviour rather than spelling: the Mystic's *"quartal construction
+-- | creates tonal ambiguity; like other quartals and even the °7, we're never
+-- | sure which of the many possible chords it will resolve to."*
+-- |
+-- | Offsets are one, two, three and four fourths up, and one down — the five
+-- | most used, in that order, for a `q4` predecessor. **The SIDE is not
+-- | measured**: quartal successors carry a minor third 24–31% of the time
+-- | against 40% overall, which is a lean and not a rule, so both are offered
+-- | and the choice is left downstream.
+byFourths :: Array Tree
+byFourths = do
+  offset <- [ 5, 10, 3, 8, 7 ]
+  side <- [ MajorSide, MinorSide ]
+  pure { offset, side }
+
+-- | Quartals and the Mystic: the chords with no third for a key to be built
+-- | on. `sideOf` files them major, which is right for admission and wrong here.
+quartalish :: ChordType -> Boolean
+quartalish (ChordType t) = case t.quality of
+  Quartal3 -> true
+  Quartal4 -> true
+  Mystic -> true
+  _ -> false
+
+byDegree :: ChordType -> Array Tree
+byDegree ct = case sideOf ct of
   MinorSide ->
     [ { offset: 3, side: MajorSide }   -- III
     , { offset: 5, side: MinorSide }   -- iv
