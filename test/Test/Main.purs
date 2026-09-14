@@ -15,6 +15,7 @@ import Test.OpenVoicingSpec (runOpenVoicingTests)
 import Test.PaletteSpec (runPaletteTests)
 import Test.PropSpec (runPropTests)
 import Test.QuantiseSpec (runQuantiseTests)
+import Test.RecogniseSpec (runRecogniseTests)
 import Test.VoiceSpec (runVoiceTests)
 import Test.VoicingSpec (runVoicingTests)
 
@@ -28,6 +29,7 @@ main = do
   runQuantiseTests
   runGaloisTests
   runVoiceTests
+  runRecogniseTests
   runPaletteTests
   runOpenVoicingTests
   log "\nAll Harmonia golden tests passed."

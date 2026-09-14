@@ -17,6 +17,8 @@ been vendored verbatim across four projects.
 DegreeChord ──realize──▶ Chord ──closeVoicing──▶ Voicing ──voiceLead──▶ Voicing ──▶ …
  (a recipe)            (pitch-class set)        (sorted MIDI)         (least motion)
    what it means          which notes            where they sit       how they move
+            ◀─recognise──┘
+      ranked, named readings of a noisy set of pitch classes
 ```
 
 ## Install
@@ -280,6 +282,57 @@ say *what is true*, never *how to show it*. The full tour is runnable:
 ```
 spago run -p harmonia-example --main Example.Anchor
 ```
+
+## Going the other way — `Harmonia.Recognise`
+
+`realize` turns a recipe into pitch classes. `Harmonia.Recognise` turns pitch
+classes back into ranked, named readings — for a sampler workflow where somebody
+strikes a chord, an onset detector cuts it out, a pitch estimator reports which
+pitch classes are present and which one is in the bass, and the UI wants a
+*suggested* name a human can accept or overtype.
+
+Two facts shape it. The input is **noisy** — a chroma estimate over real audio
+invents notes and loses others — so recognition is a scoring problem, never a
+lookup. And a pitch-class set is **ambiguous even when perfect**: `{9,0,4,7}` is
+Am7 and C6, exactly and equally. Several ranked readings is the correct answer,
+not a failure; a known bass is what settles it.
+
+```purescript
+import Harmonia.Recognise (best, candidateName, observe, observeWithBass)
+
+candidateName <$> best (observe          [9, 0, 4, 7])   -- Just "Am7"  (prior only)
+candidateName <$> best (observeWithBass 0 [9, 0, 4, 7])  -- Just "C6"
+candidateName <$> best (observeWithBass 4 [0, 4, 7, 11]) -- Just "Cmaj7/E"
+candidateName <$> best (observe          [0, 4, 11])     -- Just "Cmaj7"  (fifth dropped)
+```
+
+Every reading carries a `Score` (so a caller can show confidence or set a
+threshold) and a `Fit` — the tones matched, the tones missing, and the notes
+nothing could explain. Scoring weights tones by ROLE: root and third identify a
+chord, the seventh colours it, and the perfect fifth is nearly free, which is
+exactly the note players drop and estimators miss. Unexplained notes are charged
+by how foreign they are — a 9th over a triad is almost nothing, a contradicting
+third is expensive.
+
+`recogniseInKey` answers in the library's own vocabulary, returning an actual
+`DegreeChord` (borrowing a parallel mode when the root needs it) so a reading
+composes with `realize`, `Harmonia.Voicing` and `Harmonia.Anchor` instead of
+dead-ending in a string:
+
+```purescript
+keyedChord <$> bestInKey cMajorKey (observeWithBass 7 [7, 11, 2, 5])
+  -- Just (deg V Dom7 [])
+```
+
+The vocabulary is a fixed table of templates whose pitch classes are produced by
+calling `realize` itself, so the recogniser cannot drift away from the thing it
+inverts. The test suite makes that a property: realize every `DegreeChord` in a
+108-chord corpus (McMullen Yellow, plus common chords across five keys and
+modes, plus inversions), feed the pitch classes back, and look for the original.
+**With a known bass all 108 rank first; with no bass at all 98 rank first and
+none is ever lost** — the other ten are outranked by a reading that describes the
+same notes just as well (a 6th chord *is* its relative minor 7th; a °7 has four
+equal roots), and the test names every one rather than pretending otherwise.
 
 ## Relationship to the School of Music
 
