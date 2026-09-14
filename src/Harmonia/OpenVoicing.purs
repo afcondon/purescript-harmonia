@@ -246,18 +246,20 @@ applySpread o r sp = Voicing (displace sp (baseStack o r))
 -- | Not an inverse, and the docs should not pretend otherwise: `displace`
 -- | re-sorts, so the correspondence between a note and the tone it came from is
 -- | not carried in the result. This recovers it by MATCHING — each note is
--- | assigned to the lowest stack tone of its pitch class that sits at or below
--- | it, and the octave distance becomes the lift.
+-- | assigned to the NEAREST stack position of its own pitch class, and the
+-- | octave distance becomes the lift.
 -- |
--- | Two consequences worth knowing before trusting it:
+-- | **Nearest, and signed.** An earlier version required the position to sit at
+-- | or below the note, which reads naturally and loses notes: `tonesOf` pads a
+-- | short chord with extra roots and `stackFrom` puts those pads at the TOP of
+-- | the stack, so a doubled tone sounding in the middle of the chord has its
+-- | only matching position above it and no home at all. Measured after an
+-- | inversion, 27 of 186 chords lost a note that way. A lift may therefore be
+-- | negative; `displace` handles that already, since it only ever adds.
 -- |
--- |   * When the stack doubles a tone (`minTones` pads short chords with extra
--- |     roots) two positions share a pitch class, and the match is greedy —
--- |     lowest first. The notes are right, which position they are credited to
--- |     may not be.
--- |   * A note whose pitch class is not in the chord at all cannot be placed and
--- |     is dropped. That is the honest answer: it was never a displacement of
--- |     this chord, so no spread describes it.
+-- | One consequence remains: a note whose pitch class is not in the chord at all
+-- | cannot be placed, and is dropped. That is the honest answer — it was never a
+-- | displacement of this chord, so no spread describes it.
 -- |
 -- | It exists so that ONE editor serves every lens. A chord from the Banks
 -- | generator knows its spread already; a chord off the tonnetz or the lattice
@@ -269,9 +271,14 @@ spreadOf o r v = map (\b -> Place (sort (map (\n -> (n - b) / 12) (claimed b))))
   uppers = case Array.uncons (voicingMidi v) of
     Nothing -> []
     Just { tail: rest } -> sort rest
-  -- a note belongs to the LOWEST stack position sharing its pitch class that it
-  -- sits at or above; greedy, so a doubled tone credits the lower position.
-  owner n = Array.head (filter (\b -> mod (n - b) 12 == 0 && n >= b) positions)
+  -- a note belongs to the NEAREST stack position sharing its pitch class, above
+  -- or below. Two positions of one pitch class (the `minTones` padding) then
+  -- take one note each rather than both crowding onto the lower.
+  owner n =
+    Array.head (sortBy (comparing (\b -> away n b))
+      (filter (\b -> mod (n - b) 12 == 0) positions))
+
+  away a b = let d = a - b in if d < 0 then negate d else d
   claimed b = filter (\n -> owner n == Just b) uppers
 
 -- ---------------------------------------------------------------------------
@@ -287,10 +294,19 @@ setTone i pl = mapPlace i (const pl)
 
 -- | Move tone `i`'s LOWEST sounding octave by `d`, clamped into `0 .. reach`.
 -- | A plain drag: the tone keeps sounding once, at a new height.
+-- |
+-- | The floor is PER TONE rather than a constant 0. `spreadOf` can legitimately
+-- | read a negative lift — a doubled tone whose stack pad sits above where it
+-- | actually sounds — and a blanket floor of 0 would silently hoist such a tone
+-- | an octave the first time you nudged it. So a tone may stay wherever it was
+-- | read, and may not be dragged below that.
 moveTone :: Open -> Int -> Int -> Spread -> Spread
 moveTone o i d = mapPlace i \(Place ks) -> case Array.head (sort ks) of
   Nothing -> Place ks
-  Just k -> Place (sort (nub (cons (clampReach o (k + d)) (fromMaybe [] (Array.tail (sort ks))))))
+  Just k ->
+    let floor = min 0 k
+        k' = max floor (min (max 0 o.reach) (k + d))
+    in Place (sort (nub (cons k' (fromMaybe [] (Array.tail (sort ks))))))
 
 -- | Add an octave copy of tone `i` above its current top — ⌥-drag. A tone that
 -- | was omitted comes back in place, which is what the gesture should mean on a
