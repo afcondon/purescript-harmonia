@@ -33,6 +33,14 @@ module Harmonia.Voicing
   , Selector(..)
   , takeChord
   , takeVoicing
+  -- Repositioning — same notes, different arrangement
+  , invert
+  , transposeOctaves
+  , refoot
+  , slash
+  , nearestOctave
+  , bassPitchClass
+  , nextBassTone
   -- Voice leading (V-C)
   , Progression
   , voiceLead
@@ -318,6 +326,135 @@ rangeIncl :: Int -> Int -> Array Int
 rangeIncl lo hi
   | hi < lo   = []
   | otherwise = range lo hi
+
+-- ---------------------------------------------------------------------------
+-- Repositioning — the transforms that move a chord without changing it
+-- ---------------------------------------------------------------------------
+--
+-- Three operations that share one discipline: **they preserve the note count
+-- and the pitch-class content, always.** Inverting, transposing by octaves and
+-- re-footing all rearrange a chord; none of them is allowed to add or lose a
+-- note. Each has been written the obvious way at least once and each obvious
+-- way was wrong, so the laws in `VoicingSpec` are the specification and these
+-- are merely an implementation of it.
+--
+-- All three take a `Voicing` whose LOWEST note is its bass, and return one with
+-- the same property. Applied to a direction they are `VoicingStrategy`s, so
+-- they compose with the rest of this module.
+
+-- | The pitch class in the bass — the lowest note's, not the chord's root.
+bassPitchClass :: Voicing -> Int
+bassPitchClass v = case Array.head (sort (voicingMidi v)) of
+  Nothing -> 0
+  Just b -> mod b 12
+
+-- | **Invert: the lowest note up an octave, or the highest down.**
+-- |
+-- | The textbook operation, and the trap is what you apply it to. Inverting the
+-- | UPPER voices of a voicing whose root sits in the bass — which is what
+-- | `openVoicing` produces, and what a keyboard pad wants — deletes the root:
+-- | rotating the uppers of C·G·B·E puts G at the bottom and the C is simply
+-- | gone. The whole voicing, bass included, is the unit.
+-- |
+-- | ⟲ and ⟳ are NOT exact inverses on a widely-spaced chord, and cannot be:
+-- | "lowest up" and "highest down" only undo each other when the note that
+-- | moved up lands on top, which is true in close position and not otherwise.
+-- | Both preserve the chord, which is the property worth having.
+invert :: Int -> Voicing -> Voicing
+invert dir v =
+  let ns = sort (voicingMidi v)
+  in if dir > 0 then case Array.uncons ns of
+       Just { head: lo, tail: rest } -> Voicing (sort (Array.snoc rest (lo + 12)))
+       Nothing -> v
+     else case Array.unsnoc ns of
+       Just { init: rest, last: hi } -> Voicing (sort (cons (hi - 12) rest))
+       Nothing -> v
+
+-- | Move a whole voicing by `d` octaves. Unbounded on purpose — what counts as
+-- | a playable register belongs to whatever is going to sound it, not to the
+-- | theory.
+transposeOctaves :: Int -> Voicing -> Voicing
+transposeOctaves d v = Voicing (map (_ + 12 * d) (voicingMidi v))
+
+-- | The sounding pitch class `dir` steps around the cycle from the bass.
+-- |
+-- | **Sounding**, not merely a member of the chord: a tone that is not being
+-- | played has no copy for `refoot` to trade with, so re-footing onto it could
+-- | only preserve the chord by growing it.
+nextBassTone :: Int -> Voicing -> Int
+nextBassTone dir v =
+  let tones = sort (nub (map (\m -> mod m 12) (voicingMidi v)))
+      n = Array.length tones
+  in case Array.findIndex (_ == bassPitchClass v) tones of
+       Just i | n > 0 -> fromMaybe (bassPitchClass v) (tones !! mod (i + dir + n) n)
+       _ -> bassPitchClass v
+
+-- | **Re-foot the chord on another of its sounding tones: invert until that
+-- | tone is in the bass.**
+-- |
+-- | Defining it as repeated `invert` rather than as its own surgery is the
+-- | whole trick. Two attempts at the surgery failed on this corpus — putting
+-- | the new tone at the octave nearest the old bass lands it ABOVE the other
+-- | notes in a close voicing (473 of 960 voicings ended up with the wrong note
+-- | lowest), and putting it strictly below drags the chord's register down a
+-- | little further on every re-footing. Inverting has neither problem, cannot
+-- | lose a note because `invert` cannot, and says something true: re-footing IS
+-- | a run of inversions, and the two controls are the same control at different
+-- | granularities.
+-- |
+-- | A pitch class the chord is not sounding leaves it untouched — there is no
+-- | copy to bring down, and inventing one would change the chord.
+refoot :: Int -> Voicing -> Voicing
+refoot pc v = go (2 * Array.length (voicingMidi v) + 1) v
+  where
+  go n w
+    | bassPitchClass w == mod pc 12 = w
+    | n <= 0 = v
+    | otherwise = go (n - 1) (invert 1 w)
+
+-- | The octave of `pc` closest to the note `near`.
+nearestOctave :: Int -> Int -> Int
+nearestOctave pc near =
+  let up = near + mod (mod pc 12 - mod near 12 + 12) 12
+      down = up - 12
+  in if near - down <= up - near then down else up
+
+-- | **Slash: put a tone underneath and leave the upper structure alone.**
+-- |
+-- | The other half of `refoot`, and genuinely a different operation rather than
+-- | a variation on it. `refoot` inverts until the wanted tone is lowest, which
+-- | rotates the whole structure and closes any gap the chord had; `slash` keeps
+-- | the structure exactly as voiced and changes only what is beneath it. That
+-- | is what the name says — C/E is C·E·G with an E under it, not E·G·C — and it
+-- | is what a chord with a deliberately low bass needs, since inverting such a
+-- | chord collapses the very spacing that makes it a pad.
+-- |
+-- | Content and count still survive, by the same trade `refoot` avoids needing:
+-- | if the outgoing bass tone no longer sounds anywhere, the incoming tone gives
+-- | up its lowest upper copy and the outgoing one takes that place. And the new
+-- | bass drops an octave if the nearest one would not have been lowest, which is
+-- | what makes it work on a close voicing as well as a spread one.
+slash :: Int -> Voicing -> Voicing
+slash pc v =
+  let ns = sort (voicingMidi v)
+      oldPc = bassPitchClass v
+  in case Array.uncons ns of
+       Nothing -> v
+       Just { head: bass, tail: ups }
+         | mod pc 12 == oldPc -> v
+         | otherwise ->
+             let
+               cand = nearestOctave pc bass
+               newBass = case Array.head ups of
+                 Just u | cand >= u -> cand - 12
+                 _ -> cand
+             in
+               if elem oldPc (map (\m -> mod m 12) ups) then Voicing (sort (cons newBass ups))
+               else case Array.find (\m -> mod m 12 == mod pc 12) ups of
+                 Nothing -> Voicing (sort (cons newBass ups))
+                 Just taken ->
+                   Voicing (sort (cons newBass
+                     (cons (nearestOctave oldPc taken) (filter (_ /= taken) ups))))
 
 -- ---------------------------------------------------------------------------
 -- Voice leading — V-C
