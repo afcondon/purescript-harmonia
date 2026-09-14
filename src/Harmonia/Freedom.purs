@@ -1,54 +1,62 @@
 -- | **How far a chord is allowed to roam from home — the distance axis.**
 -- |
 -- | `Harmonia.Palette` says which chord TYPES are in play; this says which
--- | ROOTS and which side of the wheel they may sit on. The two are independent
--- | by design, which is the point of having both: you can wander a long way
--- | using only triads, or stay on the tonic and stack thirteenths on it.
+-- | ROOTS they may sit on. The two are independent by design, which is the
+-- | point of having both: you can wander a long way on triads, or stay on the
+-- | tonic and stack thirteenths.
 -- |
--- | ## Six rings, each one note from the last
+-- | ## The rule, measured
 -- |
--- | The obvious reading — "allow roots within n steps on the circle of fifths"
--- | — is WRONG, and measurably so: D, A and E are at fifths-distances 2, 3 and
--- | 4 from C and all three enter at the same ring, so no distance threshold
--- | produces the ordering. What Collett's *Circle of Colors* actually describes
--- | is a chain of relative- and parallel-minor moves spiralling outward, each
--- | of which changes exactly one note:
+-- | A chord has a POSITION on the circle of fifths, and freedom is a symmetric
+-- | window around the tonic:
 -- |
 -- | ```
--- |   0   C  F  G    +  Am Dm Em      the tonic group and its relative minors
--- |   1   A  D  E                     parallel majors of those minors
--- |   2   Cm Fm Gm                    parallel minors of the tonic group
--- |   3   E♭ A♭ B♭                    relative majors of those
--- |   4   E♭m A♭m B♭m                 parallel minors of those
--- |   5   G♭ B  D♭  +  G♭m Bm D♭m     relative majors of those, and the rest
+-- |   position = fifths-distance from the tonic of
+-- |                the root            -- for a chord with a major third or none
+-- |                the root + 3        -- for a chord with a MINOR third
+-- |
+-- |   admitted at freedom n   iff   |position| <= n + 1
 -- | ```
 -- |
--- | Written out it collapses to something much smaller than the prose: every
--- | ring is the tonic group transposed by one of four offsets — 0, −3, +3, +6 —
--- | taken on one side of the wheel or the other. Eight groups of three, which
--- | is all twenty-four major and minor areas, and ring 5 reaches the tritone
--- | exactly as the source says Free Flow must.
+-- | A minor chord sits at its RELATIVE MAJOR's position, which is exactly how
+-- | the circle of fifths is drawn — relative minors on the inner ring of the
+-- | same wedge. So a "segment" of the wheel is a major chord and its relative
+-- | minor together, and each freedom level opens one more segment either side.
+-- | That is the manual's own sentence: *"Each level of freedom expands the
+-- | scope of the progressions by another segment of the circle of fifths."*
 -- |
--- | ## A key and its relative minor have the same rings
+-- | Freedom 0 is therefore ±1: C, F and G with Am, Dm and Em — *"these six
+-- | chords are the ones most closely related to C major tonality"*. Freedom 5
+-- | is ±6, which reaches the tritone and so is everything.
 -- |
--- | They are the same wheel segment — the inner ring of a circle of fifths is
--- | the relative minors — so A minor's rings ARE C major's rings, in the same
--- | order. The mode changes which chord the walk STARTS on and nothing else,
--- | which fits what the source says about the key: *"You select one of 12 keys
--- | then major or minor, so you have 24 choices"* for the first chord, and
--- | everything after it walks from the chord before.
+-- | ## An earlier reading of this was wrong
 -- |
--- | ## What is measured and what is read
+-- | Collett's paper contains a passage walking outward from the tonic — add the
+-- | relative minors, then the majors on their roots, then the parallel minors,
+-- | and so on — and it was read here as a description of the freedom levels. It
+-- | is not; it is compositional advice about the wheel, and it predicts that D,
+-- | A and E all arrive together at level 1. **Measured, they do not**: at
+-- | freedom 1 in C, D is admitted and A and E are not, which is a fifths
+-- | window of ±2 and nothing else. The prose cost a correct first reading.
 -- |
--- | The rings are transcribed from the paper and are as solid as anything here.
--- | `sideOf` is not: the source states the PRINCIPLE — chords of *"a major or
--- | more neutral function"* sit in the major segment, those of *"a more distant
--- | or minor function"* in the minor segments — and gives nine examples, which
--- | the rule below matches nine for nine. It has never been checked against a
--- | filtered menu, because every menu captured so far was at Free Flow, where
--- | nothing is filtered. Treat it as the reading it is.
+-- | ## What the third decides
 -- |
--- | Full derivation: `docs/kb/reference/progressions-generator.md`.
+-- | Only the third. A chord carrying a minor third is a minor-area chord; every
+-- | other chord — including dominants, suspensions, augmenteds and quartals —
+-- | is a major-area chord.
+-- |
+-- | This contradicts the manual, which says of the *display* wheel that chords
+-- | *"with a more distant or minor function are shown in the minor segments
+-- | (such as m, m7, m9, 7 etc.)"* — filing plain `7` with the minors. For
+-- | DISPLAY that may well be true. For admission it is not: at freedom 1 in C,
+-- | `A7` is refused while `Am7` is offered, and A major is out of the window
+-- | while A minor (at C's position) is in. Four measured discriminators settle
+-- | it — `A7`, `Asus4` and `Aq3` refused, `A°7` and `Aø7` offered.
+-- |
+-- | All of it verified against a real Replace menu: 94 chords at Key C major,
+-- | Freedom 1, Complexity Extreme, with no mismatches. See `FreedomSpec` for
+-- | the golden and `docs/kb/reference/progressions-generator.md` for the
+-- | derivation.
 module Harmonia.Freedom
   ( Freedom
   , freedom
@@ -59,7 +67,8 @@ module Harmonia.Freedom
   , Area
   , Home
   , sideOf
-  , tonicGroup
+  , fifths
+  , position
   , ring
   , areasUpTo
   , admits
@@ -69,10 +78,10 @@ module Harmonia.Freedom
 
 import Prelude
 
-import Data.Array (concatMap, elem, filter, nub, range)
+import Data.Array (concatMap, elem, filter, range)
 import Data.Array as Array
-import Harmonia.Chord (Chord(..), Quality(..), Tension(..), qualityIntervals)
-import Harmonia.Palette (ChordType(..), Level, typeOn, upTo)
+import Harmonia.Chord (Tension(..), qualityIntervals)
+import Harmonia.Palette (ChordType(..), Level, upTo)
 
 -- | 0 (strict) to 5 (free flow). A number rather than named levels because the
 -- | source presents it as one — unlike complexity, whose levels it names.
@@ -98,12 +107,8 @@ strict = Freedom 0
 freeFlow :: Freedom
 freeFlow = Freedom 5
 
--- | Which half of the wheel an area or a chord belongs to.
--- |
--- | Two-valued, though the source's own wording is three: *"a major or more
--- | NEUTRAL function"*. Neutral chords — the ones with no third at all — are
--- | drawn in the major segment, so for the purpose of deciding what freedom
--- | admits there are two sides and neutral is one of them.
+-- | Which half of a wheel segment a chord sits in — the outer ring of majors
+-- | or the inner ring of relative minors.
 data Side = MajorSide | MinorSide
 
 derive instance eqSide :: Eq Side
@@ -121,79 +126,78 @@ type Area = { root :: Int, side :: Side }
 -- | Where home is. `minor` selects the starting chord, not the rings.
 type Home = { tonic :: Int, minor :: Boolean }
 
--- | **Which side of the wheel a chord type belongs to.**
+-- | **Which side of a segment a chord type belongs to. The third decides.**
 -- |
--- | The third decides it, and a minor seventh over a major third decides it the
--- | other way — a dominant is a *distant* function, which is why the source
--- | files plain `7` beside `m`, `m7` and `m9` rather than beside `M7`.
+-- | A minor third puts the chord in the minor ring; anything else — a major
+-- | third, or no third at all — puts it in the major ring. Dominants included,
+-- | which is the measured result and not the documented one: see the module
+-- | header.
 -- |
--- | Three things make this fiddlier than it sounds, and all three are why the
--- | rule reads the QUALITY rather than the realised pitch classes:
+-- | It reads the QUALITY rather than the realised pitch classes, and has to.
+-- | Three traps otherwise:
 -- |
--- |   * `q4` is `[0, 5, 10, 15]`, and 15 reduces to 3 — which is not a minor
--- |     third, it is a ninth an octave up. Reading reduced pitch classes files
--- |     every four-note quartal chord as minor.
+-- |   * `q4` is `[0, 5, 10, 15]`, and 15 reduces to 3 — not a minor third but
+-- |     a ninth an octave up. Reading reduced pitch classes files every
+-- |     four-note quartal chord as minor, and `Aq3` being REFUSED at freedom 1
+-- |     in C is the measurement that says quartals are major-side.
 -- |   * A `Sharp 9` reduces to 3 for the same reason.
--- |   * A `Sus` removes the third, so a suspended chord is neutral however its
--- |     quality began.
--- |
--- | The non-tertian qualities are neutral by construction and say so first.
+-- |   * A `Sus` replaces the third, so a suspended chord has none — and
+-- |     `Asus4` is refused where `Am` is offered, so no third means major side.
 sideOf :: ChordType -> Side
-sideOf ct@(ChordType t) = case t.quality of
-  Quartal3 -> MajorSide
-  Quartal4 -> MajorSide
-  Mystic -> MajorSide
-  _ ->
-    let
-      base = qualityIntervals t.quality
+sideOf (ChordType t) =
+  let base = qualityIntervals t.quality
       suspended = Array.any isSus t.tensions
-      Chord pcs = typeOn 0 ct
-    in
-      if suspended || not (elem 3 base || elem 4 base) then MajorSide
-      else if elem 3 base then MinorSide
-      else if elem 10 pcs then MinorSide
-      else MajorSide
+  in if not suspended && elem 3 base then MinorSide else MajorSide
   where
   isSus = case _ of
     Sus _ -> true
     _ -> false
 
--- | The tonic and the two chords either side of it on the circle of fifths —
--- | in C, that is F, C and G. Every ring is this group transposed.
-tonicGroup :: Int -> Array Int
-tonicGroup t = map (\i -> mod (t + i + 12) 12) [ -7, 0, 7 ]
+-- | **Position on the circle of fifths**, as the representative of smallest
+-- | magnitude: `G` is +1 from C, `F` is −1, and the tritone is +6.
+fifths :: Int -> Int -> Int
+fifths tonic pc =
+  let d = mod ((pc - tonic) * 7) 12
+  in if d > 6 then d - 12 else d
 
--- | **What one ring introduces.**
--- |
--- | The chain in the module header, stated as the four transpositions it
--- | actually is. A minor home resolves to its relative major first, since the
--- | two share a wheel segment and therefore share every ring.
+-- | Where an area sits relative to home. A minor area is read at its RELATIVE
+-- | MAJOR, because that is the wedge of the wheel it shares — and a minor HOME
+-- | is read the same way, for the same reason.
+position :: Home -> Area -> Int
+position home a =
+  let t = if home.minor then mod (home.tonic + 3) 12 else mod home.tonic 12
+      r = case a.side of
+            MajorSide -> mod a.root 12
+            MinorSide -> mod (a.root + 3) 12
+  in fifths t r
+
+-- | **What one freedom level introduces** — the segment at each end of the
+-- | window. Kept separate from `areasUpTo` because it is what a wheel draws:
+-- | rings of a spiral, one colour each.
 ring :: Home -> Int -> Array Area
 ring home n =
-  let
-    t = if home.minor then mod (home.tonic + 3) 12 else mod home.tonic 12
-    g = tonicGroup t
-    at off side = map (\r -> { root: mod (r + off + 12) 12, side }) g
-  in
-    case n of
-      0 -> at 0 MajorSide <> at (-3) MinorSide
-      1 -> at (-3) MajorSide
-      2 -> at 0 MinorSide
-      3 -> at 3 MajorSide
-      4 -> at 3 MinorSide
-      -- Free Flow "includes everything", and the three relative majors alone
-      -- would leave their parallel minors unreachable — so the last ring is
-      -- also where the chain closes over the remaining twenty-fourth.
-      5 -> at 6 MajorSide <> at 6 MinorSide
-      _ -> []
+  filter (\a -> abs (position home a) == n + 1) everyArea
+  where
+  abs k = if k < 0 then negate k else k
+
+-- | All twenty-four major and minor areas.
+everyArea :: Array Area
+everyArea = do
+  r <- range 0 11
+  side <- [ MajorSide, MinorSide ]
+  pure { root: r, side }
 
 -- | Every area available AT a freedom level — cumulative, like complexity.
 areasUpTo :: Home -> Freedom -> Array Area
 areasUpTo home f =
-  nub (concatMap (ring home) (range 0 (freedomIndex f)))
+  filter (\a -> abs (position home a) <= freedomIndex f + 1) everyArea
+  where
+  abs k = if k < 0 then negate k else k
 
 admits :: Home -> Freedom -> Area -> Boolean
-admits home f a = elem a (areasUpTo home f)
+admits home f a = abs (position home a) <= freedomIndex f + 1
+  where
+  abs k = if k < 0 then negate k else k
 
 -- | A chord type on a root — what a generator picks, and what freedom filters.
 type Allowed = { root :: Int, chordType :: ChordType }
