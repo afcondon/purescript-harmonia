@@ -18,6 +18,7 @@ import Test.PropSpec (runPropTests)
 import Test.QuantiseSpec (runQuantiseTests)
 import Test.RecogniseSpec (runRecogniseTests)
 import Test.VoiceSpec (runVoiceTests)
+import Test.WalkSpec (runWalkTests)
 import Test.VoicingSpec (runVoicingTests)
 
 main :: Effect Unit
@@ -34,4 +35,5 @@ main = do
   runPaletteTests
   runOpenVoicingTests
   runFreedomTests
+  runWalkTests
   log "\nAll Harmonia golden tests passed."

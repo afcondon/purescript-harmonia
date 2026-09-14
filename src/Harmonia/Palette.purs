@@ -62,6 +62,8 @@ module Harmonia.Palette
   , typeIntervals
   , typeOn
   , palette
+  , majorTriad
+  , minorTriad
   , atLevel
   , upTo
   ) where
@@ -156,12 +158,23 @@ atLevel lv = filter (\(ChordType t) -> t.level == lv) palette
 upTo :: Level -> Array ChordType
 upTo lv = filter (\(ChordType t) -> levelIndex t.level <= levelIndex lv) palette
 
+-- | **The two triads, named.**
+-- |
+-- | Not a convenience: they are what a key resolves to when a generator needs
+-- | its FIRST chord, and reaching them by searching the palette for a suffix
+-- | makes a total function partial for no reason.
+majorTriad :: ChordType
+majorTriad = chordType Basic Maj [] ""
+
+minorTriad :: ChordType
+minorTriad = chordType Basic Min [] "m"
+
 -- | The forty.
 palette :: Array ChordType
 palette =
   -- ── Basic: the two triads everything else is a departure from ───────────
-  [ chordType Basic Maj [] ""
-  , chordType Basic Min [] "m"
+  [ majorTriad
+  , minorTriad
 
   -- ── Low: ambiguity rather than density ──────────────────────────────────
   , chordType Low Maj [ Sus 2 ] "sus2"
