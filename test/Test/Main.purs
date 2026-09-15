@@ -21,6 +21,7 @@ import Test.RecogniseSpec (runRecogniseTests)
 import Test.VoiceSpec (runVoiceTests)
 import Test.WalkSpec (runWalkTests)
 import Test.TransformSpec (runTransformTests)
+import Test.VarySpec (runVaryTests)
 import Test.VoicingSpec (runVoicingTests)
 
 main :: Effect Unit
@@ -41,4 +42,5 @@ main = do
   runWalkTests
   runProgressionTests
   runTransformTests
+  runVaryTests
   log "\nAll Harmonia golden tests passed."

@@ -58,6 +58,7 @@ module Harmonia.Walk
   ( Seed
   , seed
   , nextSeed
+  , pick
   , Setting
   , defaults
   , band1
