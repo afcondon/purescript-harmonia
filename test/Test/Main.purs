@@ -21,6 +21,7 @@ import Test.RecogniseSpec (runRecogniseTests)
 import Test.VoiceSpec (runVoiceTests)
 import Test.WalkSpec (runWalkTests)
 import Test.TransformSpec (runTransformTests)
+import Test.TrellisSpec (runTrellisTests)
 import Test.VarySpec (runVaryTests)
 import Test.VoicingSpec (runVoicingTests)
 
@@ -43,4 +44,5 @@ main = do
   runProgressionTests
   runTransformTests
   runVaryTests
+  runTrellisTests
   log "\nAll Harmonia golden tests passed."

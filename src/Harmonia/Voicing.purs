@@ -39,6 +39,7 @@ module Harmonia.Voicing
   , refoot
   , slash
   , nearestOctave
+  , motionBetween
   , bassPitchClass
   , nextBassTone
   -- Voice leading (V-C)
@@ -412,6 +413,34 @@ nextBassTone dir v =
   in case Array.findIndex (_ == bassPitchClass v) tones of
        Just i | n > 0 -> fromMaybe (bassPitchClass v) (tones !! mod (i + dir + n) n)
        _ -> bassPitchClass v
+
+-- | **How far the hand travels between two voicings that are already voiced.**
+-- |
+-- | Distinct from `voiceLead`, which CHOOSES a voicing to minimise motion. Here
+-- | both chords are already fixed — the question is only how far apart they are,
+-- | which is what ranking alternatives at one slot of a progression needs.
+-- |
+-- | Each note of either chord is charged the distance to its nearest note in the
+-- | other, in both directions. Summing both ways is what makes it behave with
+-- | chords of different sizes: a four-note voicing that contains a three-note one
+-- | is not at distance zero from it, because the fourth voice still had to come
+-- | from somewhere. It is zero exactly when the two sound the same notes.
+-- |
+-- | Not a permutation search: the voices are already assigned, so there is no
+-- | pairing to optimise, and nearest-neighbour is both cheaper and closer to what
+-- | the ear is actually doing — hearing whether anything jumped.
+motionBetween :: Voicing -> Voicing -> Int
+motionBetween a b =
+  let
+    xs = sort (voicingMidi a)
+    ys = sort (voicingMidi b)
+  in
+    reach xs ys + reach ys xs
+  where
+  reach ps qs = sum (map (\p -> nearestGap p qs) ps)
+  nearestGap p qs = case Array.head (sort (map (\q -> absInt (p - q)) qs)) of
+    Just d -> d
+    Nothing -> 0
 
 -- | **Re-foot the chord on another of its sounding tones: invert until that
 -- | tone is in the bass.**
