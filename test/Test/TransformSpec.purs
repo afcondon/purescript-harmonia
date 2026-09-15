@@ -74,6 +74,24 @@ runTransformTests = do
     (\v -> length (voicingMidi v) < 2
            || length (Array.difference (notes v) (notes (invert 1 v))) == 1)
 
+  -- MEASUREMENT (2026-09-15): the count laws above are blind to a UNISON. They
+  -- count array entries, and `invert` cannot change that; what it can do is land
+  -- the rising note on a pitch already sounding, so four entries become three
+  -- heard notes. This is the invariant that catches it — deliberate doubling is
+  -- still allowed, but a transform may not INVENT one.
+  law "invert up invents no unison"
+    (\v -> length (nub (notes (invert 1 v))) == length (nub (notes v)))
+  law "invert down invents no unison"
+    (\v -> length (nub (notes (invert (-1) v))) == length (nub (notes v)))
+  law "a full rotation invents no unison"
+    (\v -> let n = length (notes v)
+               rotated = Array.foldl (\w _ -> invert 1 w) v (Array.range 1 n)
+           in length (nub (notes rotated)) == length (nub (notes v)))
+  law "re-footing onto every sounding tone invents no unison"
+    (\v -> all (\pc -> length (nub (notes (refoot pc v))) == length (nub (notes v))) (pcsOf v))
+  law "slashing onto every sounding tone invents no unison"
+    (\v -> all (\pc -> length (nub (notes (slash pc v))) == length (nub (notes v))) (pcsOf v))
+
   law "an octave up moves every note by 12"
     (\v -> notes (transposeOctaves 1 v) == map (_ + 12) (notes v))
   law "an octave down moves every note by -12"
