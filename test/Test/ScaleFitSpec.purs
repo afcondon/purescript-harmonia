@@ -54,7 +54,7 @@ runScaleFitTests = do
       complete = filter (\f -> f.outside == []) (fitsFor 1 [ 4, 9 ] e7am)
   assertEqual { actual: map _.family (take 2 complete), expected: [ "melodic minor", "harmonic minor" ] }
   assertEqual { actual: map (\f -> head f.names) (take 2 complete)
-              , expected: [ Just { root: 4, mode: "mixolydian \x266d6" }, Just { root: 4, mode: "phrygian dominant" } ] }
+              , expected: [ Just { root: 4, mode: "mixolydian ♭6" }, Just { root: 4, mode: "phrygian dominant" } ] }
 
   -- symmetric scales are listed once a distinct set: whole tone has two
   -- and diminished three

@@ -51,9 +51,9 @@ families =
   , { family: "blues", intervals: [ 0, 3, 5, 6, 7, 10 ]
     , modes: [ Just "minor blues", Just "major blues", Nothing, Nothing, Nothing, Nothing ] }
   , { family: "melodic minor", intervals: [ 0, 2, 3, 5, 7, 9, 11 ]
-    , modes: map Just [ "melodic minor", "dorian \x266d2", "lydian augmented", "lydian dominant", "mixolydian \x266d6", "locrian \x266e2", "altered" ] }
+    , modes: map Just [ "melodic minor", "dorian ♭2", "lydian augmented", "lydian dominant", "mixolydian ♭6", "locrian ♮2", "altered" ] }
   , { family: "harmonic minor", intervals: [ 0, 2, 3, 5, 7, 8, 11 ]
-    , modes: map Just [ "harmonic minor", "locrian \x266e6", "ionian \x266f5", "dorian \x266f4", "phrygian dominant", "lydian \x266f2", "ultralocrian" ] }
+    , modes: map Just [ "harmonic minor", "locrian ♮6", "ionian ♯5", "dorian ♯4", "phrygian dominant", "lydian ♯2", "ultralocrian" ] }
   , { family: "harmonic major", intervals: [ 0, 2, 4, 5, 7, 8, 11 ]
     , modes: [ Just "harmonic major", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing ] }
   , { family: "diminished", intervals: [ 0, 2, 3, 5, 6, 8, 9, 11 ]
